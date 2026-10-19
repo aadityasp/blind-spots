@@ -66,6 +66,21 @@ After each of Claude's replies in the main conversation, the mod forks the conve
 
 Each request includes the lists currently on screen. That lets assumptions you've confirmed or corrected drop off, while scenarios that still matter stay put. Only the newest refresh can write to the pane, so a slow request never overwrites a newer one.
 
+## What it reads and sends
+
+The background fork reads your conversation, the same context Claude already has, and returns only the two lists. Nothing goes anywhere else.
+
+The mod submits a prompt only when you press an item, and it never submits anything on its own. What it submits is the one-sentence message shown for that item, which the fork wrote, such as "Should the pane really refresh after every reply?" It goes into the conversation as your next message, exactly as if you had typed it.
+
+## Hooks
+
+| Hook | What it does |
+| --- | --- |
+| `session.start` | Opens the pane and registers `/blind-spots` |
+| `command.run` | Answers `/blind-spots` by opening the pane and refreshing it. It handles no other command. |
+| `turn.complete` | Passes the finished turn through unchanged, then schedules a refresh after main conversation replies |
+| `ui.render` | Draws the pane |
+
 ## Cost
 
 Every refresh is one extra model call that reads your conversation, so it adds to your token usage. If that matters, press `a` to turn auto refresh off and press `r` whenever you want a fresh read.

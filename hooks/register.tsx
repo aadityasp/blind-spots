@@ -141,10 +141,14 @@ async function refresh($: EngineInterface): Promise<void> {
   }
 }
 
-// `label` is what the pane shows, so a pressed item can be dimmed.
-async function ask($: EngineInterface, label: string, text: string): Promise<void> {
-  await update($, picked, list => (list.includes(label) ? list : [...list, label]))
-  await $.prompt.submit({ text, asUser: true })
+// What pressing an item does: send its text as the user's next message and
+// remember its `label` so the pane can dim it. Takes `$` alone, the shape the
+// plugin directory's checks can follow.
+function asker($: EngineInterface) {
+  return async (label: string, text: string): Promise<void> => {
+    await update($, picked, list => (list.includes(label) ? list : [...list, label]))
+    await $.prompt.submit({ text, asUser: true })
+  }
 }
 
 export const register: Register = on => {
@@ -179,6 +183,7 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Button, Text } = $.ui.resolve(e)
+    const ask = asker($)
     const list = await read($, spots)
     const assumed = await read($, assumptions)
     const now = await read($, status)
@@ -245,7 +250,7 @@ export const register: Register = on => {
               plain
               hotkey={String(index + 1)}
               dimColor={done.includes(spot.title)}
-              onPress={() => ask($, spot.title, spot.ask)}
+              onPress={() => ask(spot.title, spot.ask)}
             >
               <Text color={KIND_COLOR[spot.kind]} weight="bold">
                 {TAG[spot.kind]}
@@ -273,7 +278,7 @@ export const register: Register = on => {
                   key={`assumed:${index}`}
                   plain
                   dimColor={done.includes(one.text)}
-                  onPress={() => ask($, one.text, one.ask)}
+                  onPress={() => ask(one.text, one.ask)}
                 >
                   {one.text}
                   {asked(one.text)}
