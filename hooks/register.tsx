@@ -273,16 +273,21 @@ export const register: Register = on => {
             {/* The bullet sits outside the Button so a long line wraps under its text. */}
             {assumed.map((one, index) => (
               <Box key={`row:${index}`}>
-                <Text color="warning">{'› '}</Text>
-                <Button
-                  key={`assumed:${index}`}
-                  plain
-                  dimColor={done.includes(one.text)}
-                  onPress={() => ask(one.text, one.ask)}
-                >
-                  {one.text}
-                  {asked(one.text)}
-                </Button>
+                {/* Kept from shrinking, or a long line squeezes the bullet out. */}
+                <Box flexShrink={0}>
+                  <Text color="warning">{'› '}</Text>
+                </Box>
+                <Box flexShrink={1}>
+                  <Button
+                    key={`assumed:${index}`}
+                    plain
+                    dimColor={done.includes(one.text)}
+                    onPress={() => ask(one.text, one.ask)}
+                  >
+                    {one.text}
+                    {asked(one.text)}
+                  </Button>
+                </Box>
               </Box>
             ))}
           </Box>

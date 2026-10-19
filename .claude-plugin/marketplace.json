@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "blind-spots",
-  "description": "Blind spots for Claude Code: scenarios you might have missed and the assumptions Claude is making, in a side pane",
+  "description": "Blind spots for Claude Code. See what Claude assumed and what you forgot to ask.",
   "owner": {
     "name": "Aditya Appana",
     "url": "https://github.com/aadityasp"
@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "blind-spots",
-      "description": "A side pane that shows the scenarios you might have missed and the assumptions Claude is making, refreshed after every reply",
+      "description": "See what Claude assumed and what you forgot to ask. A side pane that lists Claude's unstated assumptions and the scenarios you might have missed, updated after every reply. Press an item to send it to Claude.",
       "author": {
         "name": "Aditya Appana",
         "url": "https://github.com/aadityasp"

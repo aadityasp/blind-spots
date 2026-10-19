@@ -1,7 +1,7 @@
 {
   "name": "blind-spots",
-  "version": "0.2.0",
-  "description": "A side pane that shows the scenarios you might have missed and the assumptions Claude is making, refreshed after every reply",
+  "version": "0.2.1",
+  "description": "See what Claude assumed and what you forgot to ask. A side pane that lists Claude's unstated assumptions and the scenarios you might have missed, updated after every reply. Press an item to send it to Claude.",
   "author": {
     "name": "Aditya Appana",
     "url": "https://github.com/aadityasp"
@@ -9,6 +9,13 @@
   "homepage": "https://github.com/aadityasp/blind-spots",
   "repository": "https://github.com/aadityasp/blind-spots",
   "license": "MIT",
-  "keywords": ["claude-code", "mod", "pane", "assumptions", "blind-spots", "planning"],
+  "keywords": [
+    "claude-code",
+    "mod",
+    "pane",
+    "assumptions",
+    "blind-spots",
+    "planning"
+  ],
   "types": "./types/index.d.ts"
 }

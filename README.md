@@ -1,29 +1,17 @@
 # Blind spots
 
-A side pane for Claude Code that keeps two lists in view while you build.
+**See what Claude assumed and what you forgot to ask, right next to your conversation.**
 
-- **Scenarios you might have missed.** Questions worth asking, features worth adding and topics worth looking into, all specific to your conversation.
-- **Assumptions Claude is making.** Things Claude decided without asking you, like requirements it inferred, defaults it picked and guesses about your setup.
+![Blind spots running beside a Claude Code session](assets/demo.gif)
 
-Both lists refresh after every reply. Press an item and it becomes your next message, so digging into a scenario or correcting an assumption takes one keystroke.
+When you ask Claude Code to build something, it quietly fills in the blanks. It decides how people sign in, which database to use and what happens when something fails. Usually you only find out later.
 
-```
-✦ Scenarios you might have missed ─────── 4
-  Q question · F feature · T topic
-  1: Q  What happens when uploads fail
-  2: F  Undo for bulk deletes ✓
-  3: T  Rate limits on the free tier
-  4: Q  Who owns data after cancel
+Blind spots adds a side pane that lists those blanks after every reply.
 
-◇ Assumptions Claude is making ────────── 3
-  Decided without asking. Press to check.
-  › Users sign in with email, not SSO
-  › Postgres is fine for the first 10k users
-  › The app only needs to support English
-    for launch
+- **Assumptions Claude is making.** Decisions it made without asking you, like "Users sign in with email, not SSO."
+- **Scenarios you might have missed.** Edge cases and questions worth a look, like "What happens when an upload fails?"
 
-r: refresh  a: auto on            ● thinking
-```
+Press any item and it goes to Claude as your next message. Correcting an assumption or digging into a scenario takes one key.
 
 ## Install
 
@@ -59,6 +47,8 @@ Built and tested on Claude Code 2.1.303. It needs a version that supports mods.
 | `/blind-spots` | Reopen the pane and refresh it |
 
 Hotkeys work while the pane has focus. Click it or press `ctrl+x` then `tab` to focus it. Items you've already asked about turn dim and get a ✓.
+
+The pane docks beside the conversation in fullscreen mode and sits above the prompt otherwise. Claude Code only opens a pane by itself on a terminal at least 144 columns wide. On a narrower one, run `/blind-spots` once, and from then on it opens by itself from 110 columns.
 
 ## How it works
 
