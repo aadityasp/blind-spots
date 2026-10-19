@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "blind-spots",
+  "description": "Blind spots for Claude Code: scenarios you might have missed and the assumptions Claude is making, in a side pane",
+  "owner": {
+    "name": "Aditya Appana",
+    "url": "https://github.com/aadityasp"
+  },
+  "plugins": [
+    {
+      "name": "blind-spots",
+      "description": "A side pane that shows the scenarios you might have missed and the assumptions Claude is making, refreshed after every reply",
+      "version": "0.2.0",
+      "author": {
+        "name": "Aditya Appana",
+        "url": "https://github.com/aadityasp"
+      },
+      "homepage": "https://github.com/aadityasp/blind-spots",
+      "license": "MIT",
+      "category": "productivity",
+      "source": "./"
+    }
+  ]
+}
