@@ -10,7 +10,6 @@
     {
       "name": "blind-spots",
       "description": "A side pane that shows the scenarios you might have missed and the assumptions Claude is making, refreshed after every reply",
-      "version": "0.2.0",
       "author": {
         "name": "Aditya Appana",
         "url": "https://github.com/aadityasp"
