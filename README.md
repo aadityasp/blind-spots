@@ -70,7 +70,7 @@ Each request includes the lists currently on screen. That lets assumptions you'v
 
 The background fork reads your conversation, the same context Claude already has, and returns only the two lists. Nothing goes anywhere else.
 
-The mod submits a prompt only when you press an item, and it never submits anything on its own. What it submits is the one-sentence message shown for that item, which the fork wrote, such as "Should the pane really refresh after every reply?" It goes into the conversation as your next message, exactly as if you had typed it.
+The mod submits a prompt only when you press an item, and it never submits anything on its own. What it submits is the one-sentence message shown for that item, which the fork wrote, such as "Should the pane really refresh after every reply?" It goes into the conversation as your next message, exactly as if you had typed it. The full [privacy policy](PRIVACY.md) has the details.
 
 ## Hooks
 
