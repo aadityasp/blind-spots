@@ -8,9 +8,9 @@ When you ask Claude Code to build something, it quietly fills in the blanks. It 
 
 After every reply, Blind spots scans the conversation and shows:
 
-- **▲ Check this first.** The one decision that would hurt most if it's wrong, with what breaks, like "Old invoices are deleted, not archived. If wrong: customer history is gone for good."
-- **◆ Decided for you.** The other decisions Claude made on its own, each with a risk rating from ●○○○○ to ●●●●●.
-- **? Not raised yet.** The few questions that would change what gets built.
+- **Check this first.** The one decision that would hurt most if it's wrong, with what breaks, like "Old invoices are deleted, not archived. If this is wrong: customer history is gone for good."
+- **Claude decided for you.** The other decisions Claude made on its own. Dots show what a wrong guess would cost, from ●○○○○ (a small fix) to ●●●●● (serious harm).
+- **Questions you haven't raised yet.** The few questions that would change what gets built.
 
 Press a number and that item goes to Claude as your next message. If a decision is fine, say so with one key. That costs nothing and it's never raised again.
 
@@ -43,14 +43,14 @@ Built and tested on Claude Code 2.1.303. It needs a version that supports mods.
 | --- | --- |
 | `1` to `9` | Ask Claude about that item |
 | `It's right` | Mark the top risk as fine. No message is sent |
-| `f` | Mark everything else on screen as fine. No message is sent |
-| `u` | Restore everything you marked fine and scan again |
-| `r` | Scan now |
-| `a` | Turn the scan after every reply on or off |
-| `d` | Switch between focused (3 decisions, 2 questions) and thorough (6 and 4) |
-| `/blind-spots` | Reopen the pane and scan |
+| `f` | Mark the rest fine. No message is sent |
+| `u` | Bring back everything you marked fine, and check again |
+| `r` | Check again now |
+| `a` | Turn the check after every reply on or off |
+| `d` | Show more (6 decisions, 4 questions) or fewer (3 and 2) |
+| `/blind-spots` | Reopen the pane and check again |
 
-Hotkeys work while the pane has focus. Click it or press `ctrl+x` then `tab` to focus it. Items you've asked about get a ✓, and items that appeared since the last scan get a ✦.
+Hotkeys work while the pane has focus. Click it or press `ctrl+x` then `tab` to focus it. Items you've asked about end in "(asked)", and items that appeared since the last check end in "(new)".
 
 Hover over any item to see the exact message it will send. On Claude Code 2.1.327 or later the top risk also sits in its own card. On older versions the pane shows the same items and controls without those touches.
 

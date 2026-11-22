@@ -7,9 +7,8 @@
 // Claude as your next message. "It's right" and "rest are fine" stay local:
 // no message, no tokens, and the item is never raised again this session.
 //
-// The visual language, used the same way everywhere:
-//   ▲  the one risk to check first     ◆  a decision made for you
-//   ?  something not raised yet        ●●●○○  risk, 1 to 5
+// Dots rate each decision: what a wrong guess would cost, from ●○○○○ (a
+// small fix) to ●●●●● (serious harm). A legend at the top says so.
 
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
@@ -233,7 +232,8 @@ function settler($: EngineInterface) {
   }
 }
 
-const meter = (risk: number, cells = 5) => '●'.repeat(risk) + '○'.repeat(Math.max(0, cells - risk))
+const DOTS = 5
+const meter = (risk: number, cells = DOTS) => '●'.repeat(risk) + '○'.repeat(Math.max(0, cells - risk))
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -300,18 +300,21 @@ export const register: Register = on => {
       return digit <= 9 ? { hotkey: String(digit) } : {}
     }
 
-    const marks = (label: string) => [
-      newer.includes(label) && (
-        <Text key="new" color="suggestion">
-          {' ✦ new'}
-        </Text>
-      ),
-      done.includes(label) && (
-        <Text key="asked" color="success">
-          {' ✓ asked'}
-        </Text>
-      ),
-    ]
+    // "new" and "asked" are words at the end of the item's own sentence, so
+    // they wrap with it instead of forming a ragged column of their own.
+    const tagOf = (label: string) =>
+      done.includes(label) ? ' (asked)' : newer.includes(label) ? ' (new)' : ''
+
+    const tag = (label: string) => {
+      const text = tagOf(label)
+      return (
+        text !== '' && (
+          <Text key="tag" color={done.includes(label) ? 'success' : 'suggestion'}>
+            {text}
+          </Text>
+        )
+      )
+    }
 
     // The exact message "Ask" sends, revealed while the pointer is over its
     // row. It carries no key: the hover belongs to the row's keyed Box.
@@ -319,33 +322,24 @@ export const register: Register = on => {
       rich && (
         <Box display="none" hover={{ display: 'flex' }} paddingLeft={indent}>
           <Text dimColor italic>
-            {`sends “${text}”`}
+            {`Sends: “${text}”`}
           </Text>
         </Box>
       )
 
     // One item, drawn per surface:
-    // - Terminal (a monospace grid): a fixed-width marker column, then the
-    //   text as the control itself ("2: text"), wrapping under its start.
+    // - Terminal (a monospace grid): a fixed-width dots column, then the text
+    //   as the control itself ("2: text"), wrapping under its own start.
+    //   Questions leave the dots column blank so every row's text lines up.
     // - Desktop (a proportional font, where no column of glyphs lines up):
-    //   one wrapping paragraph that opens with the marker, and a small Ask
+    //   one wrapping paragraph that opens with the dots, and a small Ask
     //   pinned to the row's right edge so every Ask sits in one column.
-    const row = (opts: {
-      rowKey: string
-      pressKey: string
-      marker: string
-      markerColor?: string
-      text: string
-      sends: string
-    }) => {
+    const row = (opts: { rowKey: string; pressKey: string; risk?: number; text: string; sends: string }) => {
       const keyProps = nextHotkey()
       const isAsked = done.includes(opts.text)
       const press = () => ask(opts.text, opts.sends)
-      const markerText = (
-        <Text color={opts.markerColor} dimColor={opts.markerColor === undefined}>
-          {isTerminal ? `${opts.marker} ` : `${opts.marker.trim()}  `}
-        </Text>
-      )
+      const dots = opts.risk === undefined ? '' : meter(opts.risk)
+      const dotsColor = opts.risk !== undefined && opts.risk >= LEAD_RISK ? 'warning' : undefined
 
       if (!isTerminal) {
         return (
@@ -353,9 +347,13 @@ export const register: Register = on => {
             <Box justifyContent="space-between" columnGap={2}>
               <Box flexShrink={1}>
                 <Text dimColor={isAsked}>
-                  {markerText}
+                  {dots !== '' && (
+                    <Text color={dotsColor} dimColor={dotsColor === undefined}>
+                      {`${dots}  `}
+                    </Text>
+                  )}
                   {opts.text}
-                  {marks(opts.text)}
+                  {tag(opts.text)}
                 </Text>
               </Box>
               <Box flexShrink={0}>
@@ -370,56 +368,98 @@ export const register: Register = on => {
       return (
         <Box key={opts.rowKey} flexDirection="column">
           <Box>
-            <Box flexShrink={0}>{markerText}</Box>
-            <Box flexShrink={1}>
-              <Button key={opts.pressKey} plain {...keyProps} dimColor={isAsked} label={opts.text} onPress={press} />
+            <Box flexShrink={0}>
+              <Text color={dotsColor} dimColor={dotsColor === undefined}>
+                {`${dots === '' ? ' '.repeat(DOTS) : dots} `}
+              </Text>
             </Box>
-            {marks(opts.text)}
+            <Box flexShrink={1}>
+              <Button
+                key={opts.pressKey}
+                plain
+                {...keyProps}
+                dimColor={isAsked}
+                label={opts.text + tagOf(opts.text)}
+                onPress={press}
+              />
+            </Box>
           </Box>
-          {preview(opts.sends, opts.marker.length + 1)}
+          {preview(opts.sends, DOTS + 1)}
         </Box>
       )
     }
 
-    const section = (glyph: string, color: string, heading: string, count: number) => (
-      <Box marginTop={1}>
-        <Text color={color}>{`${glyph} `}</Text>
-        <Text bold>{heading}</Text>
-        <Text dimColor>{`  ${count}`}</Text>
-      </Box>
-    )
+    // Section headings have to stand out from the items under them: colour
+    // and weight everywhere, a rule out to the pane's edge on the terminal,
+    // and a larger size on a desktop engine that takes it.
+    const headingSize = rich && !isTerminal ? ({ size: 'heading' } as const) : {}
+    const section = (heading: string, count: number) => {
+      const tail = `  ${count} `
+      const rule = '─'.repeat(Math.max(2, e.props.bodyColumns - heading.length - tail.length - 1))
+
+      return (
+        <Box marginTop={1}>
+          <Text bold color="suggestion" {...headingSize}>
+            {heading}
+          </Text>
+          <Text dimColor>{tail}</Text>
+          {isTerminal && (
+            <Text dimColor wrap="truncate-end">
+              {rule}
+            </Text>
+          )}
+        </Box>
+      )
+    }
 
     const statusLine =
       now === 'thinking' ? (
-        <Text color="claude">{`${SCAN[tick % SCAN.length]} scanning`}</Text>
+        <Text color="claude">{`${SCAN[tick % SCAN.length]} reading the chat`}</Text>
       ) : now === 'failed' ? (
-        <Text color="error">✕ couldn't scan</Text>
+        <Text color="error">couldn't read the chat</Text>
       ) : auto ? (
         <Text>
           <Text color="success">●</Text>
-          <Text dimColor> watching</Text>
+          <Text dimColor> on</Text>
         </Text>
       ) : (
         <Text dimColor>○ paused</Text>
       )
 
+    // What the dots mean, once, at the top, whenever any are on screen.
+    const legend = assumed.length > 0 && (
+      <Box flexDirection="column">
+        <Text dimColor>Dots show what a wrong guess would cost:</Text>
+        <Box columnGap={3}>
+          <Text dimColor>{`${meter(1)} small fix`}</Text>
+          <Text color="warning">{`${meter(5)} serious harm`}</Text>
+        </Box>
+      </Box>
+    )
+
     // The one bold element: the riskiest decision, in a card where the engine
-    // draws borders, with its meter, what breaks if it's wrong, and its actions.
+    // draws borders, with its dots, what breaks if it's wrong, and its actions.
     const leadInner = lead !== undefined && (
       <Box flexDirection="column">
         <Box justifyContent="space-between">
-          <Text color="warning" bold>
-            ▲ Check this first
+          <Text color="warning" bold {...headingSize}>
+            Check this first
           </Text>
           <Text color="warning">{meter(lead.risk)}</Text>
         </Box>
         <Text bold dimColor={done.includes(lead.text)}>
           {lead.text}
-          {marks(lead.text)}
+          {tag(lead.text)}
         </Text>
-        {lead.ifWrong !== undefined && <Text dimColor>{`If wrong: ${lead.ifWrong}`}</Text>}
+        {lead.ifWrong !== undefined && <Text dimColor>{`If this is wrong: ${lead.ifWrong}`}</Text>}
         <Box columnGap={2}>
-          <Button key="assumed:0" plain {...nextHotkey()} label="Ask Claude" onPress={() => ask(lead.text, lead.ask)} />
+          <Button
+            key="assumed:0"
+            plain
+            {...nextHotkey()}
+            label="Ask Claude about it"
+            onPress={() => ask(lead.text, lead.ask)}
+          />
           <Button key="settle:assumed:0" plain dimColor label="It's right" onPress={() => settle([lead.text])} />
         </Box>
       </Box>
@@ -440,43 +480,20 @@ export const register: Register = on => {
 
     const decidedBlock = rest.length > 0 && (
       <Box flexDirection="column">
-        {section('◆', 'suggestion', lead === undefined ? 'Decided for you' : 'Also decided for you', rest.length)}
+        {section(lead === undefined ? 'Claude decided for you' : 'Claude also decided for you', rest.length)}
         {rest.map((one, index) => {
           const at = lead === undefined ? index : index + 1
-          return row({
-            rowKey: `row:${at}`,
-            pressKey: `assumed:${at}`,
-            marker: meter(one.risk),
-            ...(one.risk >= LEAD_RISK ? { markerColor: 'warning' } : {}),
-            text: one.text,
-            sends: one.ask,
-          })
+          return row({ rowKey: `row:${at}`, pressKey: `assumed:${at}`, risk: one.risk, text: one.text, sends: one.ask })
         })}
       </Box>
     )
 
     const missedBlock = list.length > 0 && (
       <Box flexDirection="column">
-        {section('?', 'suggestion', 'Not raised yet', list.length)}
+        {section("Questions you haven't raised yet", list.length)}
         {list.map((spot, index) =>
-          row({
-            rowKey: `spotrow:${index}`,
-            pressKey: `spot:${index}`,
-            marker: '?    ',
-            markerColor: 'suggestion',
-            text: spot.title,
-            sends: spot.ask,
-          }),
+          row({ rowKey: `spotrow:${index}`, pressKey: `spot:${index}`, text: spot.title, sends: spot.ask }),
         )}
-      </Box>
-    )
-
-    // What the scan found, in the same glyphs as the sections below it.
-    const summary = !isEmpty && (
-      <Box columnGap={3}>
-        {lead !== undefined && <Text color="warning">▲ 1 to check</Text>}
-        <Text dimColor>{`◆ ${rest.length} decided`}</Text>
-        <Text dimColor>{`? ${list.length} open`}</Text>
       </Box>
     )
 
@@ -485,16 +502,16 @@ export const register: Register = on => {
     return (
       <Box flexDirection="column">
         <Box justifyContent="space-between">
-          <Text bold>
-            <Text color="claude">◉ </Text>BLIND SPOTS
+          <Text bold color="claude" {...headingSize}>
+            BLIND SPOTS
           </Text>
           {statusLine}
         </Box>
-        {summary}
+        {legend}
 
         {now === 'failed' && (
           <Box marginTop={1}>
-            <Text color="error">The last scan didn't come back readable. Press r to scan again.</Text>
+            <Text color="error">The last read didn't come back readable. Press r to try again.</Text>
           </Box>
         )}
 
@@ -502,13 +519,13 @@ export const register: Register = on => {
           <Box marginTop={1} flexDirection="column">
             {ran ? (
               <Box flexDirection="column">
-                <Text>Nothing to flag.</Text>
+                <Text>Nothing to check right now.</Text>
                 <Text dimColor>Claude hasn't decided anything you didn't ask for.</Text>
               </Box>
             ) : (
               <Text dimColor>
-                After each reply, Blind spots scans the conversation for decisions Claude made without asking you,
-                and rates how risky each one is.
+                After each reply, this reads the chat and lists what Claude decided without asking you, and how much a
+                wrong guess would cost.
               </Text>
             )}
           </Box>
@@ -520,13 +537,13 @@ export const register: Register = on => {
 
         <Box marginTop={1} flexDirection="column">
           <Box columnGap={2}>
-            <Button key="refresh" plain hotkey="r" dimColor label="scan now" onPress={() => refresh($)} />
+            <Button key="refresh" plain hotkey="r" dimColor label="check again" onPress={() => refresh($)} />
             <Button
               key="auto"
               plain
               hotkey="a"
               dimColor
-              label={auto ? 'auto on' : 'auto off'}
+              label={auto ? 'auto-check on' : 'auto-check off'}
               onPress={() => update($, isAuto, value => !value)}
             />
             <Button
@@ -534,7 +551,7 @@ export const register: Register = on => {
               plain
               hotkey="d"
               dimColor
-              label={level}
+              label={level === 'focused' ? 'show more' : 'show fewer'}
               onPress={async () => {
                 await update($, depth, (value): Depth => (value === 'focused' ? 'thorough' : 'focused'))
                 await refresh($)
@@ -544,7 +561,14 @@ export const register: Register = on => {
           {(others.length > 0 || settledList.length > 0) && (
             <Box columnGap={2}>
               {others.length > 0 && (
-                <Button key="clear" plain hotkey="f" dimColor label="rest are fine" onPress={() => settle(others)} />
+                <Button
+                  key="clear"
+                  plain
+                  hotkey="f"
+                  dimColor
+                  label="mark the rest fine"
+                  onPress={() => settle(others)}
+                />
               )}
               {settledList.length > 0 && (
                 <Button
@@ -552,7 +576,7 @@ export const register: Register = on => {
                   plain
                   hotkey="u"
                   dimColor
-                  label={`restore ${settledList.length} settled`}
+                  label={`bring back ${settledList.length} hidden`}
                   onPress={async () => {
                     await update($, settled, () => [])
                     await refresh($)

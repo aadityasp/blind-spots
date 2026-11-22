@@ -62,7 +62,7 @@ test('before any reply the pane has a title and says what it will show', async (
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
 
   expect(await ui.find({ text: /BLIND SPOTS/ })).toBeDefined()
-  expect(await ui.find({ text: /scans the conversation/ })).toBeDefined()
+  expect(await ui.find({ text: /reads the chat/ })).toBeDefined()
 })
 
 test('the riskiest assumption leads, and Ask sends each item as the next message', async ($, on) => {
@@ -76,15 +76,15 @@ test('the riskiest assumption leads, and Ask sends each item as the next message
 
     expect(await ui.find({ text: /Check this first/ })).toBeDefined()
     expect(await ui.find({ text: /Old invoices are deleted, not archived/ })).toBeDefined()
-    expect(await ui.find({ text: /If wrong: customer history is gone for good/ })).toBeDefined()
-    expect(await ui.find({ text: /Also decided for you/ })).toBeDefined()
+    expect(await ui.find({ text: /If this is wrong: customer history is gone for good/ })).toBeDefined()
+    expect(await ui.find({ text: /Claude also decided for you/ })).toBeDefined()
     expect(await ui.find({ text: /Amounts are stored in cents/ })).toBeDefined()
-    expect(await ui.find({ text: /Not raised yet/ })).toBeDefined()
+    expect(await ui.find({ text: /Questions you haven't raised yet/ })).toBeDefined()
     expect(await ui.find({ text: /What if an upload fails halfway/ })).toBeDefined()
 
     await ui.press({ key: 'assumed:0' })
     expect(engine.asked.at(-1)).toBe('Should old invoices be archived instead of deleted?')
-    expect(await ui.find({ text: /✓ asked/ })).toBeDefined()
+    expect(await ui.find({ text: /\(asked\)/ })).toBeDefined()
     await ui.press({ key: 'assumed:2' })
     expect(engine.asked.at(-1)).toMatch(/Plain strings count as low stakes assumptions/)
     await ui.press({ key: 'spot:1' })
@@ -104,7 +104,7 @@ test('rest are fine settles the others without a message, and restore brings the
   expect(engine.asked.length).toBe(0)
   expect(await ui.find({ text: /Amounts are stored in cents/ })).toBeUndefined()
   expect(await ui.find({ text: /Old invoices are deleted/ })).toBeDefined()
-  expect(await ui.find({ key: 'restore', text: /restore 4 settled/ })).toBeDefined()
+  expect(await ui.find({ key: 'restore', text: /bring back 4 hidden/ })).toBeDefined()
 
   await ui.press({ key: 'refresh' })
   await clock.advance(5)
@@ -134,12 +134,25 @@ test('depth switches between focused and thorough and scans again', async ($, on
   const clock = mock.clock(on)
   const engine = engineBeneath(on, REPLY)
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  expect(await ui.find({ key: 'depth', text: /focused/ })).toBeDefined()
+  expect(await ui.find({ key: 'depth', text: /show more/ })).toBeDefined()
 
   await ui.press({ key: 'depth' })
   await clock.advance(5)
-  expect(await ui.find({ key: 'depth', text: /thorough/ })).toBeDefined()
+  expect(await ui.find({ key: 'depth', text: /show fewer/ })).toBeDefined()
   expect(engine.forks.at(-1)).toMatch(/at most 6\./)
+})
+
+test('a legend at the top explains the dots', async ($, on) => {
+  const clock = mock.clock(on)
+  engineBeneath(on, REPLY)
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await $.turn.complete(turn())
+  await clock.advance(5)
+
+  expect(await ui.find({ text: /Dots show what a wrong guess would cost/ })).toBeDefined()
+  expect(await ui.find({ text: /●○○○○ small fix/ })).toBeDefined()
+  expect(await ui.find({ text: /●●●●● serious harm/ })).toBeDefined()
+  expect(await ui.find({ text: /[▲◆✦]/ })).toBeUndefined()
 })
 
 test('empty lists read as nothing to flag, not as a failure', async ($, on) => {
@@ -149,8 +162,8 @@ test('empty lists read as nothing to flag, not as a failure', async ($, on) => {
   await $.turn.complete(turn())
   await clock.advance(5)
 
-  expect(await ui.find({ text: /Nothing to flag/ })).toBeDefined()
-  expect(await ui.find({ text: /couldn't scan/ })).toBeUndefined()
+  expect(await ui.find({ text: /Nothing to check/ })).toBeDefined()
+  expect(await ui.find({ text: /couldn't read the chat/ })).toBeUndefined()
 })
 
 test('the older bare array reply still fills the questions', async ($, on) => {
@@ -172,8 +185,8 @@ test('each row reveals the exact message Ask sends on hover', async ($, on) => {
   await $.turn.complete(turn())
   await clock.advance(5)
 
-  expect(await ui.find({ text: /sends “Should old invoices be archived instead of deleted\?”/ })).toBeDefined()
-  expect(await ui.find({ text: /sends “Who should be able to see other users invoices\?”/ })).toBeDefined()
+  expect(await ui.find({ text: /Sends: “Should old invoices be archived instead of deleted\?”/ })).toBeDefined()
+  expect(await ui.find({ text: /Sends: “Who should be able to see other users invoices\?”/ })).toBeDefined()
 })
 
 test('an engine older than hover support draws no preview', async ($, on) => {
@@ -185,7 +198,7 @@ test('an engine older than hover support draws no preview', async ($, on) => {
   await clock.advance(5)
 
   expect(await ui.find({ text: /Old invoices are deleted/ })).toBeDefined()
-  expect(await ui.find({ text: /sends “/ })).toBeUndefined()
+  expect(await ui.find({ text: /Sends: “/ })).toBeUndefined()
 })
 
 test('subagent turns do not refresh, and auto off stops refreshing', async ($, on) => {
@@ -198,7 +211,7 @@ test('subagent turns do not refresh, and auto off stops refreshing', async ($, o
   expect(engine.forks.length).toBe(0)
 
   await ui.press({ key: 'auto' })
-  expect(await ui.find({ key: 'auto', text: /auto off/ })).toBeDefined()
+  expect(await ui.find({ key: 'auto', text: /auto-check off/ })).toBeDefined()
   await $.turn.complete(turn())
   await clock.advance(5)
   expect(engine.forks.length).toBe(0)
@@ -214,6 +227,6 @@ test('a reply that is not JSON says the scan failed and how to retry', async ($,
   await $.turn.complete(turn())
   await clock.advance(5)
 
-  expect(await ui.find({ text: /couldn't scan/ })).toBeDefined()
-  expect(await ui.find({ text: /Press r to scan again/ })).toBeDefined()
+  expect(await ui.find({ text: /couldn't read the chat/ })).toBeDefined()
+  expect(await ui.find({ text: /Press r to try again/ })).toBeDefined()
 })
