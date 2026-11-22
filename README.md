@@ -1,17 +1,18 @@
 # Blind spots
 
-**See what Claude assumed and what you forgot to ask, right next to your conversation.**
+**See what Claude decided without asking you, rated by risk, right next to your conversation.**
 
 ![Blind spots running beside a Claude Code session](assets/demo.gif)
 
-When you ask Claude Code to build something, it quietly fills in the blanks. It decides how people sign in, which database to use and what happens when something fails. Usually you only find out later.
+When you ask Claude Code to build something, it quietly fills in the blanks. It decides who can see what, what gets deleted and what happens when something fails. Usually you only find out later.
 
-Blind spots adds a side pane that lists those blanks after every reply.
+After every reply, Blind spots scans the conversation and shows:
 
-- **Assumptions Claude is making.** Decisions it made without asking you, like "Users sign in with email, not SSO."
-- **Scenarios you might have missed.** Edge cases and questions worth a look, like "What happens when an upload fails?"
+- **▲ Check this first.** The one decision that would hurt most if it's wrong, with what breaks, like "Old invoices are deleted, not archived. If wrong: customer history is gone for good."
+- **◆ Decided for you.** The other decisions Claude made on its own, each with a risk rating from ●○○○○ to ●●●●●.
+- **? Not raised yet.** The few questions that would change what gets built.
 
-Press any item and it goes to Claude as your next message. Correcting an assumption or digging into a scenario takes one key.
+Press a number and that item goes to Claude as your next message. If a decision is fine, say so with one key. That costs nothing and it's never raised again.
 
 ## Install
 
@@ -40,23 +41,26 @@ Built and tested on Claude Code 2.1.303. It needs a version that supports mods.
 
 | Key | What it does |
 | --- | --- |
-| `1` to `6` | Ask Claude about that scenario |
-| Click or Tab and Enter on an assumption | Confirm or correct it |
-| `r` | Refresh now |
-| `a` | Turn auto refresh on or off |
-| `/blind-spots` | Reopen the pane and refresh it |
+| `1` to `9` | Ask Claude about that item |
+| `It's right` | Mark the top risk as fine. No message is sent |
+| `f` | Mark everything else on screen as fine. No message is sent |
+| `u` | Restore everything you marked fine and scan again |
+| `r` | Scan now |
+| `a` | Turn the scan after every reply on or off |
+| `d` | Switch between focused (3 decisions, 2 questions) and thorough (6 and 4) |
+| `/blind-spots` | Reopen the pane and scan |
 
-Hotkeys work while the pane has focus. Click it or press `ctrl+x` then `tab` to focus it. Items you've already asked about turn dim and get a ✓.
+Hotkeys work while the pane has focus. Click it or press `ctrl+x` then `tab` to focus it. Items you've asked about get a ✓, and items that appeared since the last scan get a ✦.
 
-Hover over any item to see the exact message it will send before you press it. The hover preview needs Claude Code 2.1.327 or later. On an older version the pane works the same without it.
+Hover over any item to see the exact message it will send. On Claude Code 2.1.327 or later the top risk also sits in its own card. On older versions the pane shows the same items and controls without those touches.
 
 The pane docks beside the conversation in fullscreen mode and sits above the prompt otherwise. Claude Code only opens a pane by itself on a terminal at least 144 columns wide. On a narrower one, run `/blind-spots` once, and from then on it opens by itself from 110 columns.
 
 ## How it works
 
-After each of Claude's replies in the main conversation, the mod forks the conversation once in the background and asks for both lists as JSON. Turns run by subagents don't trigger a refresh.
+After each of Claude's replies in the main conversation, the mod forks the conversation once in the background and asks for both lists as JSON, with a 1 to 5 risk for every decision. Turns run by subagents don't trigger a scan.
 
-Each request includes the lists currently on screen. That lets assumptions you've confirmed or corrected drop off, while scenarios that still matter stay put. Only the newest refresh can write to the pane, so a slow request never overwrites a newer one.
+Each request includes what's on screen and what you've marked fine. Items that still hold keep their exact wording, so only real changes stand out, and anything you settled never comes back. Only the newest scan can write to the pane, so a slow request never overwrites a newer one.
 
 ## What it reads and sends
 
@@ -75,7 +79,7 @@ The mod submits a prompt only when you press an item, and it never submits anyth
 
 ## Cost
 
-Every refresh is one extra model call that reads your conversation, so it adds to your token usage. If that matters, press `a` to turn auto refresh off and press `r` whenever you want a fresh read.
+Every scan is one extra model call over your conversation. It reuses the conversation's prompt cache and asks for a quick answer with no deliberation, so most of what it reads is billed at the cache rate. Marking items fine is free. To scan only when you choose, press `a` to turn the automatic scan off and press `r` when you want one.
 
 ## Development
 

@@ -3,18 +3,24 @@ import type { On } from 'claude-code'
 
 const USAGE = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 }
 
-const SPOTS = [
-  { kind: 'question', title: 'Who pays for the forks', ask: 'How much will refreshing every turn cost me?' },
-  { kind: 'feature', title: 'Dismiss a single item', ask: 'Should I be able to dismiss one item?' },
-  { kind: 'risk', title: 'Unknown kinds become topics', ask: 'What happens to an unknown kind?' },
-]
-
+// Listed low stakes first on purpose: the pane must still lead with the risky one.
 const ASSUMED = [
-  { text: 'The pane should refresh after every reply', ask: 'Should the pane really refresh after every reply?' },
-  'Plain strings count as assumptions too',
+  { text: 'Amounts are stored in cents', risk: 2, ask: 'Should amounts really be stored in cents?' },
+  {
+    text: 'Old invoices are deleted, not archived',
+    risk: 5,
+    ifWrong: 'customer history is gone for good',
+    ask: 'Should old invoices be archived instead of deleted?',
+  },
+  'Plain strings count as low stakes assumptions',
 ]
 
-const REPLY = JSON.stringify({ missed: SPOTS, assumptions: ASSUMED })
+const MISSED = [
+  { title: 'Who can see other users invoices?', ask: 'Who should be able to see other users invoices?' },
+  { kind: 'risk', title: 'What if an upload fails halfway?', ask: 'What should happen when an upload fails halfway?' },
+]
+
+const REPLY = JSON.stringify({ assumptions: ASSUMED, missed: MISSED })
 
 const PANE = {
   plugin: 'blind-spots',
@@ -25,17 +31,18 @@ const PANE = {
     isFocused: false,
     bodyColumns: 40,
     placement: 'dock',
-    scroll: { offset: 0, bodyRows: 20 },
+    scroll: { offset: 0, bodyRows: 40 },
     view: {},
   },
 } as const
 
-function engineBeneath(on: On, reply: string) {
+function engineBeneath(on: On, first: string) {
   const forks: string[] = []
   const asked: string[] = []
+  const state = { reply: first }
   on('model.fork', ($, e) => {
     forks.push(e.prompt)
-    return { value: { isAnswered: true, text: reply, usage: USAGE } }
+    return { value: { isAnswered: true, text: state.reply, usage: USAGE } }
   })
   on('prompt.submit', ($, e) => {
     asked.push(e.text)
@@ -43,66 +50,142 @@ function engineBeneath(on: On, reply: string) {
   })
   on('turn.complete', ($, e) => ({ text: e.answer }))
 
-  return { forks, asked }
+  return { forks, asked, state }
 }
 
 function turn(agentId?: string) {
   return { answer: 'done', durationMs: 10, isAborted: false, turnId: 't1', reason: 'answer', agentId } as const
 }
 
-test('a finished main turn fills both sections and pressing an item asks it', async ($, on) => {
+test('before any reply the pane has a title and says what it will show', async ($, on) => {
+  engineBeneath(on, REPLY)
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+
+  expect(await ui.find({ text: /BLIND SPOTS/ })).toBeDefined()
+  expect(await ui.find({ text: /scans the conversation/ })).toBeDefined()
+})
+
+test('the riskiest assumption leads, and Ask sends each item as the next message', async ($, on) => {
   const clock = mock.clock(on)
   const engine = engineBeneath(on, '```json\n' + REPLY + '\n```')
-
-  const first = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  expect(await first.find({ text: /Scenarios you might have missed/ })).toBeDefined()
-  expect(await first.find({ text: /Assumptions Claude is making/ })).toBeDefined()
-  expect(await first.find({ text: /next reply/ })).toBeDefined()
   await $.turn.complete(turn())
   await clock.advance(5)
-  await first.unmount()
 
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...PANE, surface })
 
-    expect(await ui.find({ key: 'spot:0', text: /Who pays for the forks/ })).toBeDefined()
-    expect(await ui.find({ key: 'spot:2', text: /Unknown kinds become topics/ })).toBeDefined()
-    expect(await ui.find({ key: 'assumed:0', text: /refresh after every reply/ })).toBeDefined()
-    expect(await ui.find({ key: 'assumed:1', text: /Plain strings count/ })).toBeDefined()
+    expect(await ui.find({ text: /Check this first/ })).toBeDefined()
+    expect(await ui.find({ text: /Old invoices are deleted, not archived/ })).toBeDefined()
+    expect(await ui.find({ text: /If wrong: customer history is gone for good/ })).toBeDefined()
+    expect(await ui.find({ text: /Also decided for you/ })).toBeDefined()
+    expect(await ui.find({ text: /Amounts are stored in cents/ })).toBeDefined()
+    expect(await ui.find({ text: /Not raised yet/ })).toBeDefined()
+    expect(await ui.find({ text: /What if an upload fails halfway/ })).toBeDefined()
 
-    expect(await ui.find({ text: /Scenarios you might have missed/ })).toBeDefined()
-    await ui.press({ key: 'spot:1' })
-    expect(engine.asked.at(-1)).toBe('Should I be able to dismiss one item?')
-    expect(await ui.find({ text: /✓/ })).toBeDefined()
     await ui.press({ key: 'assumed:0' })
-    expect(engine.asked.at(-1)).toBe('Should the pane really refresh after every reply?')
-    await ui.press({ key: 'assumed:1' })
-    expect(engine.asked.at(-1)).toMatch(/Plain strings count as assumptions too/)
+    expect(engine.asked.at(-1)).toBe('Should old invoices be archived instead of deleted?')
+    expect(await ui.find({ text: /✓ asked/ })).toBeDefined()
+    await ui.press({ key: 'assumed:2' })
+    expect(engine.asked.at(-1)).toMatch(/Plain strings count as low stakes assumptions/)
+    await ui.press({ key: 'spot:1' })
+    expect(engine.asked.at(-1)).toBe('What should happen when an upload fails halfway?')
     await ui.unmount()
   }
 })
 
-test('the older bare array reply still fills the missed section', async ($, on) => {
-  const clock = mock.clock(on)
-  engineBeneath(on, JSON.stringify(SPOTS))
-  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-
-  await $.turn.complete(turn())
-  await clock.advance(5)
-  expect(await ui.find({ key: 'spot:0', text: /Who pays for the forks/ })).toBeDefined()
-  expect(await ui.find({ text: /None so far/ })).toBeDefined()
-})
-
-test('the next refresh is told which assumptions are already listed', async ($, on) => {
+test('rest are fine settles the others without a message, and restore brings them back', async ($, on) => {
   const clock = mock.clock(on)
   const engine = engineBeneath(on, REPLY)
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-
   await $.turn.complete(turn())
   await clock.advance(5)
+
+  await ui.press({ key: 'clear' })
+  expect(engine.asked.length).toBe(0)
+  expect(await ui.find({ text: /Amounts are stored in cents/ })).toBeUndefined()
+  expect(await ui.find({ text: /Old invoices are deleted/ })).toBeDefined()
+  expect(await ui.find({ key: 'restore', text: /restore 4 settled/ })).toBeDefined()
+
   await ui.press({ key: 'refresh' })
-  expect(engine.forks.length).toBe(2)
-  expect(engine.forks[1]).toMatch(/Already listed as assumptions.*The pane should refresh after every reply/)
+  await clock.advance(5)
+  expect(engine.forks.at(-1)).toMatch(/Settled by the user.*Amounts are stored in cents/)
+  expect(await ui.find({ text: /Amounts are stored in cents/ })).toBeUndefined()
+
+  await ui.press({ key: 'restore' })
+  await clock.advance(5)
+  expect(engine.forks.at(-1)).not.toMatch(/Settled by the user/)
+  expect(await ui.find({ text: /Amounts are stored in cents/ })).toBeDefined()
+})
+
+test("It's right settles only the lead", async ($, on) => {
+  const clock = mock.clock(on)
+  const engine = engineBeneath(on, REPLY)
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await $.turn.complete(turn())
+  await clock.advance(5)
+
+  await ui.press({ key: 'settle:assumed:0' })
+  expect(engine.asked.length).toBe(0)
+  expect(await ui.find({ text: /Check this first/ })).toBeUndefined()
+  expect(await ui.find({ text: /Amounts are stored in cents/ })).toBeDefined()
+})
+
+test('depth switches between focused and thorough and scans again', async ($, on) => {
+  const clock = mock.clock(on)
+  const engine = engineBeneath(on, REPLY)
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect(await ui.find({ key: 'depth', text: /focused/ })).toBeDefined()
+
+  await ui.press({ key: 'depth' })
+  await clock.advance(5)
+  expect(await ui.find({ key: 'depth', text: /thorough/ })).toBeDefined()
+  expect(engine.forks.at(-1)).toMatch(/at most 6\./)
+})
+
+test('empty lists read as nothing to flag, not as a failure', async ($, on) => {
+  const clock = mock.clock(on)
+  engineBeneath(on, '{"assumptions":[],"missed":[]}')
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await $.turn.complete(turn())
+  await clock.advance(5)
+
+  expect(await ui.find({ text: /Nothing to flag/ })).toBeDefined()
+  expect(await ui.find({ text: /couldn't scan/ })).toBeUndefined()
+})
+
+test('the older bare array reply still fills the questions', async ($, on) => {
+  const clock = mock.clock(on)
+  engineBeneath(on, JSON.stringify(MISSED))
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await $.turn.complete(turn())
+  await clock.advance(5)
+
+  expect(await ui.find({ text: /Who can see other users invoices/ })).toBeDefined()
+  expect(await ui.find({ text: /Check this first/ })).toBeUndefined()
+})
+
+test('each row reveals the exact message Ask sends on hover', async ($, on) => {
+  const clock = mock.clock(on)
+  engineBeneath(on, REPLY)
+  on('session.version', () => ({ value: { version: '2.1.327', base: '2.1.327' } }))
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await $.turn.complete(turn())
+  await clock.advance(5)
+
+  expect(await ui.find({ text: /sends “Should old invoices be archived instead of deleted\?”/ })).toBeDefined()
+  expect(await ui.find({ text: /sends “Who should be able to see other users invoices\?”/ })).toBeDefined()
+})
+
+test('an engine older than hover support draws no preview', async ($, on) => {
+  const clock = mock.clock(on)
+  engineBeneath(on, REPLY)
+  on('session.version', () => ({ value: { version: '2.1.286', base: '2.1.286' } }))
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await $.turn.complete(turn())
+  await clock.advance(5)
+
+  expect(await ui.find({ text: /Old invoices are deleted/ })).toBeDefined()
+  expect(await ui.find({ text: /sends “/ })).toBeUndefined()
 })
 
 test('subagent turns do not refresh, and auto off stops refreshing', async ($, on) => {
@@ -124,43 +207,13 @@ test('subagent turns do not refresh, and auto off stops refreshing', async ($, o
   expect(engine.forks.length).toBe(1)
 })
 
-test('the pane opens with a BLIND SPOTS title', async ($, on) => {
-  engineBeneath(on, REPLY)
-  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-
-  expect(await ui.find({ text: /^BLIND SPOTS$/ })).toBeDefined()
-})
-
-test('each row holds a hover preview of the exact message it sends', async ($, on) => {
-  const clock = mock.clock(on)
-  engineBeneath(on, REPLY)
-  on('session.version', () => ({ value: { version: '2.1.327', base: '2.1.327' } }))
-  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-
-  await $.turn.complete(turn())
-  await clock.advance(5)
-  expect(await ui.find({ text: /sends: “How much will refreshing every turn cost me\?”/ })).toBeDefined()
-  expect(await ui.find({ text: /sends: “Should the pane really refresh after every reply\?”/ })).toBeDefined()
-})
-
-test('an engine older than hover support draws no preview', async ($, on) => {
-  const clock = mock.clock(on)
-  engineBeneath(on, REPLY)
-  on('session.version', () => ({ value: { version: '2.1.286', base: '2.1.286' } }))
-  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-
-  await $.turn.complete(turn())
-  await clock.advance(5)
-  expect(await ui.find({ key: 'spot:0', text: /Who pays for the forks/ })).toBeDefined()
-  expect(await ui.find({ text: /sends:/ })).toBeUndefined()
-})
-
-test('a reply that is not JSON marks the refresh failed', async ($, on) => {
+test('a reply that is not JSON says the scan failed and how to retry', async ($, on) => {
   const clock = mock.clock(on)
   engineBeneath(on, 'Sorry, nothing comes to mind.')
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-
   await $.turn.complete(turn())
   await clock.advance(5)
-  expect(await ui.find({ text: /refresh failed/ })).toBeDefined()
+
+  expect(await ui.find({ text: /couldn't scan/ })).toBeDefined()
+  expect(await ui.find({ text: /Press r to scan again/ })).toBeDefined()
 })

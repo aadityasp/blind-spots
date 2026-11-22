@@ -1,7 +1,7 @@
 {
   "name": "blind-spots",
-  "version": "0.3.0",
-  "description": "See what Claude assumed and what you forgot to ask. A side pane that lists Claude's unstated assumptions and the scenarios you might have missed, updated after every reply. Press an item to send it to Claude.",
+  "version": "0.4.0",
+  "description": "See what Claude decided without asking you, rated by risk. After every reply a side pane leads with the one decision most worth checking, rates the rest, and lists the questions you haven't raised. One key asks Claude about any of them.",
   "author": {
     "name": "Aditya Appana",
     "url": "https://github.com/aadityasp"

@@ -1,7 +1,8 @@
-export type SpotKind = 'question' | 'feature' | 'topic'
-export type Spot = { kind: SpotKind; title: string; ask: string }
-export type Assumption = { text: string; ask: string }
+export type Risk = 1 | 2 | 3 | 4 | 5
+export type Spot = { title: string; ask: string }
+export type Assumption = { text: string; ask: string; risk: Risk; ifWrong?: string }
 export type Status = 'idle' | 'thinking' | 'failed'
+export type Depth = 'focused' | 'thorough'
 
 declare module 'claude-code' {
   interface PluginState {
@@ -11,6 +12,11 @@ declare module 'claude-code' {
       status: Status
       isAuto: boolean
       picked: string[]
+      settled: string[]
+      fresh: string[]
+      hasRun: boolean
+      depth: Depth
+      frame: number
     }
   }
 }
