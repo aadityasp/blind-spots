@@ -302,8 +302,10 @@ export const register: Register = on => {
 
     // "new" and "asked" are words at the end of the item's own sentence, so
     // they wrap with it instead of forming a ragged column of their own.
+    // A no-break space ties the tag to the last word, so it never wraps onto
+    // a line by itself.
     const tagOf = (label: string) =>
-      done.includes(label) ? ' (asked)' : newer.includes(label) ? ' (new)' : ''
+      done.includes(label) ? '\u00A0(asked)' : newer.includes(label) ? '\u00A0(new)' : ''
 
     const tag = (label: string) => {
       const text = tagOf(label)
@@ -330,7 +332,7 @@ export const register: Register = on => {
     // One item, drawn per surface:
     // - Terminal (a monospace grid): a fixed-width dots column, then the text
     //   as the control itself ("2: text"), wrapping under its own start.
-    //   Questions leave the dots column blank so every row's text lines up.
+    //   Questions have no dots and sit flush left under their heading.
     // - Desktop (a proportional font, where no column of glyphs lines up):
     //   one wrapping paragraph that opens with the dots, and a small Ask
     //   pinned to the row's right edge so every Ask sits in one column.
@@ -368,11 +370,13 @@ export const register: Register = on => {
       return (
         <Box key={opts.rowKey} flexDirection="column">
           <Box>
-            <Box flexShrink={0}>
-              <Text color={dotsColor} dimColor={dotsColor === undefined}>
-                {`${dots === '' ? ' '.repeat(DOTS) : dots} `}
-              </Text>
-            </Box>
+            {dots !== '' && (
+              <Box flexShrink={0}>
+                <Text color={dotsColor} dimColor={dotsColor === undefined}>
+                  {`${dots} `}
+                </Text>
+              </Box>
+            )}
             <Box flexShrink={1}>
               <Button
                 key={opts.pressKey}
@@ -384,7 +388,7 @@ export const register: Register = on => {
               />
             </Box>
           </Box>
-          {preview(opts.sends, DOTS + 1)}
+          {preview(opts.sends, dots === '' ? 0 : DOTS + 1)}
         </Box>
       )
     }
