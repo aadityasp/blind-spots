@@ -73,7 +73,7 @@ test('a finished main turn fills both sections and pressing an item asks it', as
     expect(await ui.find({ text: /Scenarios you might have missed/ })).toBeDefined()
     await ui.press({ key: 'spot:1' })
     expect(engine.asked.at(-1)).toBe('Should I be able to dismiss one item?')
-    expect(await ui.find({ key: 'spot:1', text: /✓/ })).toBeDefined()
+    expect(await ui.find({ text: /✓/ })).toBeDefined()
     await ui.press({ key: 'assumed:0' })
     expect(engine.asked.at(-1)).toBe('Should the pane really refresh after every reply?')
     await ui.press({ key: 'assumed:1' })
@@ -122,6 +122,37 @@ test('subagent turns do not refresh, and auto off stops refreshing', async ($, o
 
   await ui.press({ key: 'refresh' })
   expect(engine.forks.length).toBe(1)
+})
+
+test('the pane opens with a BLIND SPOTS title', async ($, on) => {
+  engineBeneath(on, REPLY)
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+
+  expect(await ui.find({ text: /^BLIND SPOTS$/ })).toBeDefined()
+})
+
+test('each row holds a hover preview of the exact message it sends', async ($, on) => {
+  const clock = mock.clock(on)
+  engineBeneath(on, REPLY)
+  on('session.version', () => ({ value: { version: '2.1.327', base: '2.1.327' } }))
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+
+  await $.turn.complete(turn())
+  await clock.advance(5)
+  expect(await ui.find({ text: /sends: “How much will refreshing every turn cost me\?”/ })).toBeDefined()
+  expect(await ui.find({ text: /sends: “Should the pane really refresh after every reply\?”/ })).toBeDefined()
+})
+
+test('an engine older than hover support draws no preview', async ($, on) => {
+  const clock = mock.clock(on)
+  engineBeneath(on, REPLY)
+  on('session.version', () => ({ value: { version: '2.1.286', base: '2.1.286' } }))
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+
+  await $.turn.complete(turn())
+  await clock.advance(5)
+  expect(await ui.find({ key: 'spot:0', text: /Who pays for the forks/ })).toBeDefined()
+  expect(await ui.find({ text: /sends:/ })).toBeUndefined()
 })
 
 test('a reply that is not JSON marks the refresh failed', async ($, on) => {

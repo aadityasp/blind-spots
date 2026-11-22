@@ -109,6 +109,31 @@ function parse(text: string): Found | undefined {
   return found.spots.length === 0 && found.assumptions.length === 0 ? undefined : found
 }
 
+// Hover reveals need an engine that knows Box `hover` and `display`. An older
+// one refuses an unknown prop and drops the whole pane, so below this version
+// the pane draws without the preview. 2.1.327 is the first engine the hover
+// preview was built and tested on.
+const HOVER_SINCE = [2, 1, 327] as const
+
+function isAtLeast(version: string, floor: readonly number[]): boolean {
+  const parts = version.split(/[.-]/).slice(0, floor.length).map(Number)
+  for (let i = 0; i < floor.length; i++) {
+    const part = parts[i] ?? 0
+    if (Number.isNaN(part)) return false
+    if (part !== floor[i]) return part > floor[i]
+  }
+  return true
+}
+
+async function canHover($: EngineInterface): Promise<boolean> {
+  try {
+    const found = await $.session.version()
+    return isAtLeast(found.base ?? found.version, HOVER_SINCE)
+  } catch {
+    return false
+  }
+}
+
 // Only the newest refresh may write its answer.
 let generation = 0
 
@@ -189,19 +214,21 @@ export const register: Register = on => {
     const now = await read($, status)
     const auto = await read($, isAuto)
     const done = await read($, picked)
+    const hasHover = await canHover($)
 
     const isTerminal = e.surface === 'terminal'
     const isEmpty = list.length === 0 && assumed.length === 0
 
     // A heading, then on the terminal a rule out to the pane's edge with the
-    // item count at its end. A desktop draws a larger heading instead.
+    // item count at its end. No Text `size`: the Claude Code the desktop app
+    // pins (2.1.286) refuses that prop and drops the whole pane.
     const heading = (glyph: string, color: string, label: string, count: number) => {
       const tail = count > 0 ? ` ${count}` : ''
       const rule = '─'.repeat(Math.max(2, e.props.bodyColumns - label.length - tail.length - 4))
 
       return (
         <Box>
-          <Text size="heading" weight="bold">
+          <Text bold>
             <Text color={color}>{glyph}</Text> {label}
           </Text>
           {isTerminal && (
@@ -223,6 +250,18 @@ export const register: Register = on => {
 
     const asked = (label: string) => done.includes(label) && <Text color="success"> ✓</Text>
 
+    // The exact message a press sends, hidden until the pointer is over the
+    // row it sits in. It must carry no key of its own: the hover belongs to
+    // the nearest keyed Box, and a hidden one could never be pointed at.
+    const preview = (text: string) =>
+      hasHover && (
+        <Box display="none" hover={{ display: 'flex' }} paddingLeft={3}>
+          <Text dimColor italic>
+            {`↳ sends: “${text}”`}
+          </Text>
+        </Box>
+      )
+
     const state =
       now === 'thinking' ? (
         <Text color="claude">● thinking</Text>
@@ -234,6 +273,11 @@ export const register: Register = on => {
 
     return (
       <Box flexDirection="column">
+        <Box marginBottom={1}>
+          <Text bold color="claude">
+            BLIND SPOTS
+          </Text>
+        </Box>
         {heading('✦', 'claude', MISSED_HEADING, list.length)}
         <Box flexDirection="column" paddingLeft={2}>
           {isEmpty ? (
@@ -244,21 +288,31 @@ export const register: Register = on => {
               feature · <Text color={KIND_COLOR.topic}>T</Text> topic
             </Text>
           )}
+          {/* The chip and the check sit outside the Button, which takes a plain
+              string label: the Claude Code the desktop app pins refuses a
+              Button with Text inside it. */}
           {list.map((spot, index) => (
-            <Button
-              key={`spot:${index}`}
-              plain
-              hotkey={String(index + 1)}
-              dimColor={done.includes(spot.title)}
-              onPress={() => ask(spot.title, spot.ask)}
-            >
-              <Text color={KIND_COLOR[spot.kind]} weight="bold">
-                {TAG[spot.kind]}
-              </Text>
-              {'  '}
-              {spot.title}
-              {asked(spot.title)}
-            </Button>
+            <Box key={`spotrow:${index}`} flexDirection="column">
+              <Box>
+                <Box flexShrink={0}>
+                  <Text color={KIND_COLOR[spot.kind]} bold>
+                    {`${TAG[spot.kind]}  `}
+                  </Text>
+                </Box>
+                <Box flexShrink={1}>
+                  <Button
+                    key={`spot:${index}`}
+                    plain
+                    hotkey={String(index + 1)}
+                    dimColor={done.includes(spot.title)}
+                    label={spot.title}
+                    onPress={() => ask(spot.title, spot.ask)}
+                  />
+                </Box>
+                {asked(spot.title)}
+              </Box>
+              {preview(spot.ask)}
+            </Box>
           ))}
         </Box>
 
@@ -272,22 +326,24 @@ export const register: Register = on => {
                 : hint('Decided without asking. Press to check.')}
             {/* The bullet sits outside the Button so a long line wraps under its text. */}
             {assumed.map((one, index) => (
-              <Box key={`row:${index}`}>
-                {/* Kept from shrinking, or a long line squeezes the bullet out. */}
-                <Box flexShrink={0}>
-                  <Text color="warning">{'› '}</Text>
+              <Box key={`row:${index}`} flexDirection="column">
+                <Box>
+                  {/* Kept from shrinking, or a long line squeezes the bullet out. */}
+                  <Box flexShrink={0}>
+                    <Text color="warning">{'› '}</Text>
+                  </Box>
+                  <Box flexShrink={1}>
+                    <Button
+                      key={`assumed:${index}`}
+                      plain
+                      dimColor={done.includes(one.text)}
+                      label={one.text}
+                      onPress={() => ask(one.text, one.ask)}
+                    />
+                  </Box>
+                  {asked(one.text)}
                 </Box>
-                <Box flexShrink={1}>
-                  <Button
-                    key={`assumed:${index}`}
-                    plain
-                    dimColor={done.includes(one.text)}
-                    onPress={() => ask(one.text, one.ask)}
-                  >
-                    {one.text}
-                    {asked(one.text)}
-                  </Button>
-                </Box>
+                {preview(one.ask)}
               </Box>
             ))}
           </Box>

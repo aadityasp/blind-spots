@@ -48,6 +48,8 @@ Built and tested on Claude Code 2.1.303. It needs a version that supports mods.
 
 Hotkeys work while the pane has focus. Click it or press `ctrl+x` then `tab` to focus it. Items you've already asked about turn dim and get a ✓.
 
+Hover over any item to see the exact message it will send before you press it. The hover preview needs Claude Code 2.1.327 or later. On an older version the pane works the same without it.
+
 The pane docks beside the conversation in fullscreen mode and sits above the prompt otherwise. Claude Code only opens a pane by itself on a terminal at least 144 columns wide. On a narrower one, run `/blind-spots` once, and from then on it opens by itself from 110 columns.
 
 ## How it works
