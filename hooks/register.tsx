@@ -38,6 +38,7 @@ const fresh = atom({ plugin: 'blind-spots', key: 'fresh' } as const, [])
 const hasRun = atom({ plugin: 'blind-spots', key: 'hasRun' } as const, false)
 const depth = atom({ plugin: 'blind-spots', key: 'depth' } as const, 'focused')
 const frame = atom({ plugin: 'blind-spots', key: 'frame' } as const, 0)
+const modelName = atom({ plugin: 'blind-spots', key: 'modelName' } as const, '')
 
 function listed(label: string, items: readonly string[]): string {
   return items.length === 0 ? '' : `\n${label}: ${items.join('; ')}\n`
@@ -184,14 +185,33 @@ async function refresh($: EngineInterface): Promise<void> {
     const before = [...(await read($, assumptions)).map(one => one.text), ...(await read($, spots)).map(one => one.title)]
     const done = await read($, settled)
     const level = await read($, depth)
-    const reply = await $.model.fork({ prompt: promptFor(before, done, level) })
+    // The check runs on whatever model the session uses. Name it in the pane,
+    // so it's clear what read the chat in a setup you didn't choose.
+    try {
+      const name = await $.session.model()
+      await update($, modelName, () => name)
+    } catch {
+      // An engine without session.model() just shows no name.
+    }
+
+    const prompt = promptFor(before, done, level)
+    const reply = await $.model.fork({ prompt })
     if (mine !== generation) return
 
     if (!reply.isAnswered) {
       await update($, status, (): Status => (reply.reason === 'nothing-to-fork' ? 'idle' : 'failed'))
       return
     }
-    const found = parse(reply.text)
+    let found = parse(reply.text)
+    // Some models wrap or explain their JSON. Ask once more, strictly, before
+    // calling the read a failure. This costs a second call only when needed.
+    if (found === undefined) {
+      const again = await $.model.fork({
+        prompt: `${prompt}\n\nYour last answer could not be read as JSON. Reply with the JSON object alone: no prose, no code fence.`,
+      })
+      if (mine !== generation) return
+      found = again.isAnswered ? parse(again.text) : undefined
+    }
     if (found === undefined) {
       await update($, status, (): Status => 'failed')
       return
@@ -323,6 +343,7 @@ export const register: Register = on => {
     const level = await read($, depth)
     const tick = await read($, frame)
     const settledList = await read($, settled)
+    const model = await read($, modelName)
     const rich = await isRich($)
     const isTerminal = e.surface === 'terminal'
 
@@ -555,6 +576,7 @@ export const register: Register = on => {
           </Text>
           {statusLine}
         </Box>
+        {model !== '' && <Text dimColor>{`Reading with ${model}`}</Text>}
         {legend}
 
         {message !== '' && (

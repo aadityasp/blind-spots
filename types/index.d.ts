@@ -19,6 +19,7 @@ declare module 'claude-code' {
       hasRun: boolean
       depth: Depth
       frame: number
+      modelName: string
     }
   }
 }

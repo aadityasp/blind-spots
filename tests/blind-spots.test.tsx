@@ -41,10 +41,10 @@ type Refusal = 'no_composer' | 'dialog' | 'unanswered'
 function engineBeneath(on: On, first: string) {
   const forks: string[] = []
   const asked: string[] = []
-  const state: { reply: string; box: string; refusal?: Refusal } = { reply: first, box: '' }
+  const state: { reply: string; queue: string[]; box: string; refusal?: Refusal } = { reply: first, queue: [], box: '' }
   on('model.fork', ($, e) => {
     forks.push(e.prompt)
-    return { value: { isAnswered: true, text: state.reply, usage: USAGE } }
+    return { value: { isAnswered: true, text: state.queue.shift() ?? state.reply, usage: USAGE } }
   })
   on('prompt.read', () => ({ value: { text: state.box, cursor: state.box.length } }))
   on('prompt.fill', ($, e) => {
@@ -239,6 +239,21 @@ test('a reply that is not JSON says the scan failed and how to retry', async ($,
 
   expect(await ui.find({ text: /couldn't read the chat/ })).toBeDefined()
   expect(await ui.find({ text: /Press r to try again/ })).toBeDefined()
+})
+
+test('a reply wrapped in prose is asked for once more, and the pane names the model', async ($, on) => {
+  const clock = mock.clock(on)
+  const engine = engineBeneath(on, REPLY)
+  on('session.model', () => ({ value: 'some-other-model' }))
+  engine.state.queue.push('Here are my thoughts, in prose.')
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await $.turn.complete(turn())
+  await clock.advance(5)
+
+  expect(engine.forks.length).toBe(2)
+  expect(engine.forks[1]).toMatch(/could not be read as JSON/)
+  expect(await ui.find({ text: /Old invoices are deleted/ })).toBeDefined()
+  expect(await ui.find({ text: /Reading with some-other-model/ })).toBeDefined()
 })
 
 test('Add keeps the draft already typed, and never adds the same sentence twice', async ($, on) => {

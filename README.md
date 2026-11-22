@@ -37,6 +37,19 @@ claude --plugin-dir /path/to/blind-spots
 
 Built and tested on Claude Code 2.1.303. It needs a version that supports mods.
 
+### On a machine you didn't set up
+
+On a borrowed laptop, a cloud dev box or an interview environment, check what you have first.
+
+```sh
+claude --version
+```
+
+- **It prints a version.** Run the two install commands above, then start a new session with `claude`. The pane opens by itself. Blind spots uses whichever model that session runs on, with nothing to configure, and the pane's first line says which model it is reading with. If `plugin install` isn't available on that version, clone the repo and run `claude --plugin-dir ./blind-spots`.
+- **`claude` isn't found, or the assistant is built into a web page.** The mod can't run there. Paste [PROMPT.md](PROMPT.md) into that assistant's chat instead. It asks for the same three lists, in plain text.
+
+Mods need Claude Code itself. They don't run in other AI tools.
+
 ## Use
 
 | Key | What it does |
@@ -58,7 +71,7 @@ The pane docks beside the conversation in fullscreen mode and sits above the pro
 
 ## How it works
 
-After each of Claude's replies in the main conversation, the mod forks the conversation once in the background and asks for both lists as JSON, with a 1 to 5 risk for every decision. Turns run by subagents don't trigger a scan.
+After each of Claude's replies in the main conversation, the mod forks the conversation once in the background and asks for both lists as JSON, with a 1 to 5 risk for every decision. The fork runs on the session's own model. If the answer comes back wrapped in prose, it asks once more for the JSON alone before showing an error. Turns run by subagents don't trigger a scan.
 
 Each request includes what's on screen and what you've marked fine. Items that still hold keep their exact wording, so only real changes stand out, and anything you settled never comes back. Only the newest scan can write to the pane, so a slow request never overwrites a newer one.
 
