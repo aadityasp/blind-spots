@@ -3,9 +3,10 @@
 // one's risk, and leads with the one most worth checking. It also lists the
 // few things you haven't raised that would change the work.
 //
-// One background fork of the conversation fills it. "Ask" sends an item to
-// Claude as your next message. "It's right" and "rest are fine" stay local:
-// no message, no tokens, and the item is never raised again this session.
+// One background fork of the conversation fills it. "Add" puts an item's
+// sentence in your prompt box as a draft, for you to edit or send; nothing is
+// sent for you. "It's right" and "rest are fine" stay local: no message, no
+// tokens, and the item is never raised again this session.
 //
 // Dots rate each decision: what a wrong guess would cost, from ●○○○○ (a
 // small fix) to ●●●●● (serious harm). A legend at the top says so.
@@ -30,6 +31,8 @@ const assumptions = atom({ plugin: 'blind-spots', key: 'assumptions' } as const,
 const status = atom({ plugin: 'blind-spots', key: 'status' } as const, 'idle')
 const isAuto = atom({ plugin: 'blind-spots', key: 'isAuto' } as const, true)
 const picked = atom({ plugin: 'blind-spots', key: 'picked' } as const, [])
+const sent = atom({ plugin: 'blind-spots', key: 'sent' } as const, [])
+const notice = atom({ plugin: 'blind-spots', key: 'notice' } as const, '')
 const settled = atom({ plugin: 'blind-spots', key: 'settled' } as const, [])
 const fresh = atom({ plugin: 'blind-spots', key: 'fresh' } as const, [])
 const hasRun = atom({ plugin: 'blind-spots', key: 'hasRun' } as const, false)
@@ -207,6 +210,7 @@ async function refresh($: EngineInterface): Promise<void> {
     // "new" marks what changed since the last refresh, never the first fill.
     await update($, fresh, () => (wasFilled ? now.filter(label => !before.includes(label)) : []))
     await update($, picked, list => list.filter(label => now.includes(label)))
+    await update($, sent, list => list.filter(label => now.includes(label)))
     await update($, hasRun, () => true)
     await update($, status, (): Status => 'idle')
   } catch {
@@ -214,11 +218,42 @@ async function refresh($: EngineInterface): Promise<void> {
   }
 }
 
-// "Ask": send the item's sentence as the user's next message and mark it.
+const mark = (label: string) => (list: string[]) => (list.includes(label) ? list : [...list, label])
+
+// "Add": put the item's sentence in the prompt box as a draft, never sent for
+// the user. A draft already there is kept, and the sentence goes on a new line
+// after it. Only where the session has no prompt box at all (no_composer) does
+// it fall back to sending, since there is nowhere to put a draft.
 function asker($: EngineInterface) {
   return async (label: string, text: string): Promise<void> => {
-    await update($, picked, list => (list.includes(label) ? list : [...list, label]))
-    await $.prompt.submit({ text, asUser: true })
+    await update($, notice, () => '')
+    let draft = ''
+    try {
+      draft = (await $.prompt.read()).text
+    } catch {
+      draft = ''
+    }
+    if (draft.includes(text)) {
+      await update($, picked, mark(label))
+      return
+    }
+
+    const lead = draft === '' || draft.endsWith('\n') ? '' : '\n'
+    const result = await $.prompt.fill({ text: lead + text, mode: 'append' })
+    if (result.isFilled) {
+      await update($, picked, mark(label))
+      return
+    }
+    if (result.refusal === 'no_composer') {
+      await update($, sent, mark(label))
+      await $.prompt.submit({ text, asUser: true })
+      return
+    }
+    await update($, notice, () =>
+      result.refusal === 'dialog'
+        ? 'Close the open dialog, then press again to add it to your prompt.'
+        : "It may not have reached your prompt box. If it isn't there, press again.",
+    )
   }
 }
 
@@ -281,6 +316,8 @@ export const register: Register = on => {
     const now = await read($, status)
     const auto = await read($, isAuto)
     const done = await read($, picked)
+    const asked = await read($, sent)
+    const message = await read($, notice)
     const newer = await read($, fresh)
     const ran = await read($, hasRun)
     const level = await read($, depth)
@@ -300,31 +337,38 @@ export const register: Register = on => {
       return digit <= 9 ? { hotkey: String(digit) } : {}
     }
 
-    // "new" and "asked" are words at the end of the item's own sentence, so
+    // "added", "asked" and "new" are words at the end of the item's own sentence, so
     // they wrap with it instead of forming a ragged column of their own.
     // A no-break space ties the tag to the last word, so it never wraps onto
     // a line by itself.
+    const isUsed = (label: string) => done.includes(label) || asked.includes(label)
     const tagOf = (label: string) =>
-      done.includes(label) ? '\u00A0(asked)' : newer.includes(label) ? '\u00A0(new)' : ''
+      done.includes(label)
+        ? '\u00A0(added)'
+        : asked.includes(label)
+          ? '\u00A0(asked)'
+          : newer.includes(label)
+            ? '\u00A0(new)'
+            : ''
 
     const tag = (label: string) => {
       const text = tagOf(label)
       return (
         text !== '' && (
-          <Text key="tag" color={done.includes(label) ? 'success' : 'suggestion'}>
+          <Text key="tag" color={isUsed(label) ? 'success' : 'suggestion'}>
             {text}
           </Text>
         )
       )
     }
 
-    // The exact message "Ask" sends, revealed while the pointer is over its
+    // The exact sentence "Add" puts in the prompt box, revealed while the pointer is over its
     // row. It carries no key: the hover belongs to the row's keyed Box.
     const preview = (text: string, indent: number) =>
       rich && (
         <Box display="none" hover={{ display: 'flex' }} paddingLeft={indent}>
           <Text dimColor italic>
-            {`Sends: “${text}”`}
+            {`Adds to your prompt: “${text}”`}
           </Text>
         </Box>
       )
@@ -334,11 +378,11 @@ export const register: Register = on => {
     //   as the control itself ("2: text"), wrapping under its own start.
     //   Questions have no dots and sit flush left under their heading.
     // - Desktop (a proportional font, where no column of glyphs lines up):
-    //   one wrapping paragraph that opens with the dots, and a small Ask
-    //   pinned to the row's right edge so every Ask sits in one column.
+    //   one wrapping paragraph that opens with the dots, and a small Add
+    //   pinned to the row's right edge so every Add sits in one column.
     const row = (opts: { rowKey: string; pressKey: string; risk?: number; text: string; sends: string }) => {
       const keyProps = nextHotkey()
-      const isAsked = done.includes(opts.text)
+      const isAsked = isUsed(opts.text)
       const press = () => ask(opts.text, opts.sends)
       const dots = opts.risk === undefined ? '' : meter(opts.risk)
       const dotsColor = opts.risk !== undefined && opts.risk >= LEAD_RISK ? 'warning' : undefined
@@ -359,7 +403,7 @@ export const register: Register = on => {
                 </Text>
               </Box>
               <Box flexShrink={0}>
-                <Button key={opts.pressKey} plain {...keyProps} dimColor label="Ask" onPress={press} />
+                <Button key={opts.pressKey} plain {...keyProps} dimColor label="Add" onPress={press} />
               </Box>
             </Box>
             {preview(opts.sends, 0)}
@@ -451,7 +495,7 @@ export const register: Register = on => {
           </Text>
           <Text color="warning">{meter(lead.risk)}</Text>
         </Box>
-        <Text bold dimColor={done.includes(lead.text)}>
+        <Text bold dimColor={isUsed(lead.text)}>
           {lead.text}
           {tag(lead.text)}
         </Text>
@@ -461,7 +505,7 @@ export const register: Register = on => {
             key="assumed:0"
             plain
             {...nextHotkey()}
-            label="Ask Claude about it"
+            label="Add to my prompt"
             onPress={() => ask(lead.text, lead.ask)}
           />
           <Button key="settle:assumed:0" plain dimColor label="It's right" onPress={() => settle([lead.text])} />
@@ -512,6 +556,12 @@ export const register: Register = on => {
           {statusLine}
         </Box>
         {legend}
+
+        {message !== '' && (
+          <Box marginTop={1}>
+            <Text color="warning">{message}</Text>
+          </Box>
+        )}
 
         {now === 'failed' && (
           <Box marginTop={1}>

@@ -36,13 +36,21 @@ const PANE = {
   },
 } as const
 
+type Refusal = 'no_composer' | 'dialog' | 'unanswered'
+
 function engineBeneath(on: On, first: string) {
   const forks: string[] = []
   const asked: string[] = []
-  const state = { reply: first }
+  const state: { reply: string; box: string; refusal?: Refusal } = { reply: first, box: '' }
   on('model.fork', ($, e) => {
     forks.push(e.prompt)
     return { value: { isAnswered: true, text: state.reply, usage: USAGE } }
+  })
+  on('prompt.read', () => ({ value: { text: state.box, cursor: state.box.length } }))
+  on('prompt.fill', ($, e) => {
+    if (state.refusal !== undefined) return { isFilled: false, refusal: state.refusal }
+    state.box = e.mode === 'append' ? state.box + e.text : e.text
+    return { isFilled: true }
   })
   on('prompt.submit', ($, e) => {
     asked.push(e.text)
@@ -65,7 +73,7 @@ test('before any reply the pane has a title and says what it will show', async (
   expect(await ui.find({ text: /reads the chat/ })).toBeDefined()
 })
 
-test('the riskiest assumption leads, and Ask sends each item as the next message', async ($, on) => {
+test('the riskiest assumption leads, and Add puts each item in the prompt box without sending', async ($, on) => {
   const clock = mock.clock(on)
   const engine = engineBeneath(on, '```json\n' + REPLY + '\n```')
   await $.turn.complete(turn())
@@ -82,13 +90,15 @@ test('the riskiest assumption leads, and Ask sends each item as the next message
     expect(await ui.find({ text: /Questions you haven't raised yet/ })).toBeDefined()
     expect(await ui.find({ text: /What if an upload fails halfway/ })).toBeDefined()
 
+    engine.state.box = ''
     await ui.press({ key: 'assumed:0' })
-    expect(engine.asked.at(-1)).toBe('Should old invoices be archived instead of deleted?')
-    expect(await ui.find({ text: /\(asked\)/ })).toBeDefined()
+    expect(engine.state.box).toBe('Should old invoices be archived instead of deleted?')
+    expect(await ui.find({ text: /\(added\)/ })).toBeDefined()
     await ui.press({ key: 'assumed:2' })
-    expect(engine.asked.at(-1)).toMatch(/Plain strings count as low stakes assumptions/)
+    expect(engine.state.box).toMatch(/deleted\?\nYou assumed this, so let's check it: Plain strings/)
     await ui.press({ key: 'spot:1' })
-    expect(engine.asked.at(-1)).toBe('What should happen when an upload fails halfway?')
+    expect(engine.state.box.split('\n').at(-1)).toBe('What should happen when an upload fails halfway?')
+    expect(engine.asked.length).toBe(0)
     await ui.unmount()
   }
 })
@@ -177,7 +187,7 @@ test('the older bare array reply still fills the questions', async ($, on) => {
   expect(await ui.find({ text: /Check this first/ })).toBeUndefined()
 })
 
-test('each row reveals the exact message Ask sends on hover', async ($, on) => {
+test('each row reveals the exact sentence Add puts in the prompt on hover', async ($, on) => {
   const clock = mock.clock(on)
   engineBeneath(on, REPLY)
   on('session.version', () => ({ value: { version: '2.1.327', base: '2.1.327' } }))
@@ -185,8 +195,8 @@ test('each row reveals the exact message Ask sends on hover', async ($, on) => {
   await $.turn.complete(turn())
   await clock.advance(5)
 
-  expect(await ui.find({ text: /Sends: “Should old invoices be archived instead of deleted\?”/ })).toBeDefined()
-  expect(await ui.find({ text: /Sends: “Who should be able to see other users invoices\?”/ })).toBeDefined()
+  expect(await ui.find({ text: /Adds to your prompt: “Should old invoices be archived instead of deleted\?”/ })).toBeDefined()
+  expect(await ui.find({ text: /Adds to your prompt: “Who should be able to see other users invoices\?”/ })).toBeDefined()
 })
 
 test('an engine older than hover support draws no preview', async ($, on) => {
@@ -198,7 +208,7 @@ test('an engine older than hover support draws no preview', async ($, on) => {
   await clock.advance(5)
 
   expect(await ui.find({ text: /Old invoices are deleted/ })).toBeDefined()
-  expect(await ui.find({ text: /Sends: “/ })).toBeUndefined()
+  expect(await ui.find({ text: /Adds to your prompt: “/ })).toBeUndefined()
 })
 
 test('subagent turns do not refresh, and auto off stops refreshing', async ($, on) => {
@@ -229,4 +239,38 @@ test('a reply that is not JSON says the scan failed and how to retry', async ($,
 
   expect(await ui.find({ text: /couldn't read the chat/ })).toBeDefined()
   expect(await ui.find({ text: /Press r to try again/ })).toBeDefined()
+})
+
+test('Add keeps the draft already typed, and never adds the same sentence twice', async ($, on) => {
+  const clock = mock.clock(on)
+  const engine = engineBeneath(on, REPLY)
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await $.turn.complete(turn())
+  await clock.advance(5)
+
+  engine.state.box = 'Also rename the table'
+  await ui.press({ key: 'spot:0' })
+  await ui.press({ key: 'spot:0' })
+  expect(engine.state.box).toBe('Also rename the table\nWho should be able to see other users invoices?')
+})
+
+// The harness strips a cause a hook writes itself, so only the engine's own
+// "dialog" and "no_composer" carry one; a refusal without a cause is tested.
+test('a refused fill sends nothing and says to press again', async ($, on) => {
+  const clock = mock.clock(on)
+  const engine = engineBeneath(on, REPLY)
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await $.turn.complete(turn())
+  await clock.advance(5)
+
+  engine.state.refusal = 'unanswered'
+  await ui.press({ key: 'spot:0' })
+  expect(engine.asked.length).toBe(0)
+  expect(await ui.find({ text: /press again/ })).toBeDefined()
+  expect(await ui.find({ text: /\(added\)/ })).toBeUndefined()
+
+  engine.state.refusal = undefined
+  await ui.press({ key: 'spot:0' })
+  expect(engine.state.box).toBe('Who should be able to see other users invoices?')
+  expect(await ui.find({ text: /press again/ })).toBeUndefined()
 })

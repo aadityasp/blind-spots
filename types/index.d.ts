@@ -12,6 +12,8 @@ declare module 'claude-code' {
       status: Status
       isAuto: boolean
       picked: string[]
+      sent: string[]
+      notice: string
       settled: string[]
       fresh: string[]
       hasRun: boolean

@@ -12,7 +12,7 @@ After every reply, Blind spots scans the conversation and shows:
 - **Claude decided for you.** The other decisions Claude made on its own. Dots show what a wrong guess would cost, from ●○○○○ (a small fix) to ●●●●● (serious harm).
 - **Questions you haven't raised yet.** The few questions that would change what gets built.
 
-Press a number and that item goes to Claude as your next message. If a decision is fine, say so with one key. That costs nothing and it's never raised again.
+Press a number and that item's question goes into your prompt box, ready to edit, add to or send. Nothing is sent until you press Enter. If a decision is fine, say so with one key. That costs nothing and it's never raised again.
 
 ## Install
 
@@ -41,7 +41,7 @@ Built and tested on Claude Code 2.1.303. It needs a version that supports mods.
 
 | Key | What it does |
 | --- | --- |
-| `1` to `9` | Ask Claude about that item |
+| `1` to `9` | Add that item's question to your prompt |
 | `It's right` | Mark the top risk as fine. No message is sent |
 | `f` | Mark the rest fine. No message is sent |
 | `u` | Bring back everything you marked fine, and check again |
@@ -50,9 +50,9 @@ Built and tested on Claude Code 2.1.303. It needs a version that supports mods.
 | `d` | Show more (6 decisions, 4 questions) or fewer (3 and 2) |
 | `/blind-spots` | Reopen the pane and check again |
 
-Hotkeys work while the pane has focus. Click it or press `ctrl+x` then `tab` to focus it. Items you've asked about end in "(asked)", and items that appeared since the last check end in "(new)".
+Hotkeys work while the pane has focus. Click it or press `ctrl+x` then `tab` to focus it. Items you've added to your prompt end in "(added)", and items that appeared since the last check end in "(new)".
 
-Hover over any item to see the exact message it will send. On Claude Code 2.1.327 or later the top risk also sits in its own card. On older versions the pane shows the same items and controls without those touches.
+Hover over any item to see the exact sentence it will add. On Claude Code 2.1.327 or later the top risk also sits in its own card. On older versions the pane shows the same items and controls without those touches.
 
 The pane docks beside the conversation in fullscreen mode and sits above the prompt otherwise. Claude Code only opens a pane by itself on a terminal at least 144 columns wide. On a narrower one, run `/blind-spots` once, and from then on it opens by itself from 110 columns.
 
@@ -66,7 +66,7 @@ Each request includes what's on screen and what you've marked fine. Items that s
 
 The background fork reads your conversation, the same context Claude already has, and returns only the two lists. Nothing goes anywhere else.
 
-The mod submits a prompt only when you press an item, and it never submits anything on its own. What it submits is the one-sentence message shown for that item, which the fork wrote, such as "Should the pane really refresh after every reply?" It goes into the conversation as your next message, exactly as if you had typed it. The full [privacy policy](PRIVACY.md) has the details.
+Pressing an item puts its one-sentence question, which the fork wrote, such as "Should the pane really refresh after every reply?", into your prompt box after anything you've already typed. You edit it and send it yourself. The one exception is a session with no prompt box at all, where there's nowhere to put a draft: there, pressing an item sends the sentence as your next message, marked "(asked)". The mod never sends anything on its own. The full [privacy policy](PRIVACY.md) has the details.
 
 ## Hooks
 

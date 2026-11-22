@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "blind-spots",
-      "description": "See what Claude decided without asking you, rated by risk. After every reply a side pane leads with the one decision most worth checking, rates the rest, and lists the questions you haven't raised. One key asks Claude about any of them.",
+      "description": "See what Claude decided without asking you, rated by risk. After every reply a side pane leads with the one decision most worth checking, rates the rest, and lists the questions you haven't raised. One key puts any of them in your prompt to edit and send.",
       "author": {
         "name": "Aditya Appana",
         "url": "https://github.com/aadityasp"

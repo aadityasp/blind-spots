@@ -12,7 +12,7 @@ The two lists and the items you've pressed are kept in the mod's state inside yo
 
 ## What it sends
 
-The mod submits a prompt only when you press an item in the pane. The text it submits is the one-sentence message shown for that item, and it goes into your conversation as your next message. The mod never submits anything on its own.
+Pressing an item in the pane puts the one-sentence question shown for that item into your prompt box as a draft. It's sent only when you send it. In a session with no prompt box, pressing an item sends that sentence as your next message instead. The mod never sends anything on its own.
 
 ## Personal data and children
 
