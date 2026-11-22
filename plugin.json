@@ -1,0 +1,21 @@
+{
+  "name": "blind-spots",
+  "version": "0.5.0",
+  "description": "See what your AI assistant decided without asking you, rated by risk.",
+  "author": {
+    "name": "Aditya Appana",
+    "url": "https://github.com/aadityasp"
+  },
+  "homepage": "https://github.com/aadityasp/blind-spots",
+  "repository": "https://github.com/aadityasp/blind-spots",
+  "license": "MIT",
+  "keywords": [
+    "assumptions",
+    "blind-spots",
+    "review",
+    "planning",
+    "risk",
+    "skills"
+  ],
+  "skills": "./skills/"
+}

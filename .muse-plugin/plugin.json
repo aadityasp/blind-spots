@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "name": "blind-spots",
+  "displayName": "Blind spots",
+  "version": "0.5.0",
+  "description": "See what your AI assistant decided without asking you, rated by risk.",
+  "compat": {
+    "source": "native",
+    "manifestDir": ".muse-plugin"
+  },
+  "capabilities": {
+    "skills": [
+      {
+        "id": "blind-spots",
+        "path": "skills/blind-spots/SKILL.md"
+      }
+    ],
+    "commands": [],
+    "hooks": [],
+    "mcpServers": [],
+    "reminders": []
+  }
+}

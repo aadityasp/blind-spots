@@ -1,0 +1,20 @@
+{
+  "name": "blind-spots",
+  "interface": {
+    "displayName": "Blind spots"
+  },
+  "plugins": [
+    {
+      "name": "blind-spots",
+      "source": {
+        "source": "url",
+        "url": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

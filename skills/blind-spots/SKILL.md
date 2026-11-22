@@ -1,0 +1,78 @@
+---
+name: blind-spots
+description: Lists the decisions the assistant made without asking the user, each rated by how much a wrong guess would cost, plus the questions the user hasn't raised yet. Use when the user says "blind spots", "/blind-spots", "what did you assume", "what did you decide for me" or "what am I missing", asks to check assumptions before shipping, or turns on "blind spots after every reply".
+license: MIT
+---
+
+# Blind spots
+
+When you build something, you fill in blanks the user never specified: who can see what, what gets deleted, what happens when something fails. This skill makes you list those choices so the user can check the ones that matter before they cause damage.
+
+## When to run it
+
+- **On request.** The user says "blind spots", "/blind-spots", "what did you assume", "what did you decide for me", "what am I missing", or asks you to check your assumptions.
+- **After every reply, when switched on.** The user says "blind spots on", "turn on blind spots" or "blind spots after every reply". From then on, end every reply that changed or proposed code, config, data or a plan with a short Blind spots section. Skip it on replies that only answer a question or chat. Stop when the user says "blind spots off".
+
+## How to run it
+
+Review the conversation so far, not just your last reply. Don't use tools, don't change any files and don't start new work. Answer straight away.
+
+Act as a sharp reviewer whose only job is to protect the user from surprises. Write three parts, in this order, using these exact headings.
+
+### Check this first
+
+The one decision you made without asking that would hurt most if it's wrong. Include it only if it's risk 4 or 5 (see the dots below). Write:
+- what you assumed, in at most 10 words, as a statement the user can answer yes or no to,
+- `If this is wrong:` what breaks, in at most 10 words.
+
+### You decided for me
+
+Up to 3 other decisions the user never stated: requirements you inferred, defaults you picked, guesses about the environment, data, users or scope. Write up to 6 if the user asks for more. One line each, riskiest first, starting with dots for what a wrong guess would cost:
+
+| Dots | Cost of a wrong guess |
+| --- | --- |
+| ●●●●● | lost data, money, security or user trust |
+| ●●●●○ | days of rework |
+| ●●●○○ | hours of rework |
+| ●●○○○ | a small fix |
+| ●○○○○ | cosmetic |
+
+Be strict. Most decisions are 1 to 3 dots, and at most one is 5.
+
+### Questions you haven't raised yet
+
+Up to 2 questions specific to this work whose answers would change what gets built or shipped. Write up to 4 if the user asks for more. Never generic advice such as "add tests", "write docs" or "consider accessibility" unless this conversation makes it urgent.
+
+### Then close with one line
+
+Number every item across all three parts, 1, 2, 3 and so on in reading order, and end with this line:
+
+`Reply with a number to talk about that item, or "fine" to settle them.`
+
+## Rules
+
+- **Fewer is better.** If nothing is worth flagging, write only `Blind spots: nothing to check right now.` Never pad the lists.
+- **Keep the same words.** When you run it again, an item that still holds keeps its exact wording, so the user can see what's new. Mark new items with `(new)` at the end of the line.
+- **Settled stays settled.** When the user says an item is fine, or replies "fine", never raise it again in this conversation, in any wording.
+- **A number is a question.** When the user replies with an item's number, treat it as if they had asked that question in full. Answer it or ask what you need to know. Don't silently change code because of it.
+- **Plain words.** No jargon the user didn't use, no em dashes, and one line per item.
+
+## Example
+
+```
+Blind spots
+
+Check this first ●●●●●
+1. Old invoices are deleted, not archived.
+   If this is wrong: customer history is gone for good.
+
+You decided for me
+2. ●●●○○ Amounts are stored in cents.
+3. ●●○○○ Dates are shown in the server's time zone.
+
+Questions you haven't raised yet
+4. Who can see other users' invoices?
+5. What should happen when an upload fails halfway?
+
+Reply with a number to talk about that item, or "fine" to settle them.
+```

@@ -1,56 +1,77 @@
 # Blind spots
 
-**See what Claude decided without asking you, rated by risk, right next to your conversation.**
+**See what your AI assistant decided without asking you, rated by risk.**
 
 ![Blind spots running beside a Claude Code session](assets/demo.gif)
 
-When you ask Claude Code to build something, it quietly fills in the blanks. It decides who can see what, what gets deleted and what happens when something fails. Usually you only find out later.
+When you ask an AI to build something, it quietly fills in the blanks. It decides who can see what, what gets deleted and what happens when something fails. Usually you only find out later.
 
-After every reply, Blind spots scans the conversation and shows:
+Blind spots shows you:
 
 - **Check this first.** The one decision that would hurt most if it's wrong, with what breaks, like "Old invoices are deleted, not archived. If this is wrong: customer history is gone for good."
-- **Claude decided for you.** The other decisions Claude made on its own. Dots show what a wrong guess would cost, from ●○○○○ (a small fix) to ●●●●● (serious harm).
+- **Decided for you.** The other decisions the AI made on its own. Dots show what a wrong guess would cost, from ●○○○○ (a small fix) to ●●●●● (serious harm).
 - **Questions you haven't raised yet.** The few questions that would change what gets built.
 
-Press a number and that item's question goes into your prompt box, ready to edit, add to or send. Nothing is sent until you press Enter. If a decision is fine, say so with one key. That costs nothing and it's never raised again.
+It works with any model in about 20 AI tools. In Claude Code it's a live side pane that updates after every reply. Everywhere else it's a skill: say "blind spots" for a check, or "blind spots on" to get one after every reply.
 
 ## Install
 
-Add the marketplace and install the plugin, then start a new session.
+### Any tool, one command
+
+This installs the skill into every AI tool it finds on your machine: Codex, Cursor, Copilot, Gemini CLI, Antigravity, Windsurf, Cline, Kilo, opencode, Amp, Goose, Qwen, Zed, Junie, Kiro, Warp, Augment, Grok Build and more. It needs Node 22.20 or later.
 
 ```sh
-claude plugin marketplace add aadityasp/blind-spots
-claude plugin install blind-spots@blind-spots
+npx skills add aadityasp/blind-spots -g -a '*' -y
 ```
 
-You can also clone it straight into your skills folder.
+Leave out `-a '*' -y` to choose the tools yourself, or leave out `-g` to install into the current project only. With the GitHub CLI 2.90 or later, `gh skill install aadityasp/blind-spots` does the same.
 
-```sh
-git clone https://github.com/aadityasp/blind-spots ~/.claude/skills/blind-spots
-```
+### Your tool's own installer
 
-The pane opens by itself at the start of every session. To try it for a single session without installing it, point Claude Code at the folder instead.
+| Tool | Command | What you get |
+| --- | --- | --- |
+| Claude Code | `claude plugin marketplace add aadityasp/blind-spots` then `claude plugin install blind-spots@blind-spots` | The live pane, plus the skill |
+| Gemini CLI | `gemini extensions install https://github.com/aadityasp/blind-spots` | The skill, plus `/blind-spots` |
+| Qwen Code | `qwen extensions install https://github.com/aadityasp/blind-spots` | The skill, plus `/blind-spots` |
+| Google Antigravity | `agy plugin install https://github.com/aadityasp/blind-spots` | The skill, as `/blind-spots` |
+| GitHub Copilot CLI | `copilot plugin install aadityasp/blind-spots` | The skill |
+| Codex | `codex plugin marketplace add aadityasp/blind-spots`, then install it from `/plugins` | The skill, as `$blind-spots` |
+| Amp | `amp skill add aadityasp/blind-spots --global` | The skill |
+| Devin CLI | `devin plugins install aadityasp/blind-spots` | The skill |
+| Hermes Agent | `hermes plugins install aadityasp/blind-spots --enable` | The skill |
+| Pi | `pi install git:github.com/aadityasp/blind-spots` | The skill |
+| Kimi Code | `/plugins install https://github.com/aadityasp/blind-spots` | The skill |
+| Cursor | Customize, then **From GitHub Repository**, then paste the repo URL | The skill |
+| Kiro | **Import power from a repository URL**, then paste the repo URL | The skill |
+| Zed | Command palette: **agent: create skill from url** | The skill |
+| Muse | `git clone https://github.com/aadityasp/blind-spots` then `muse plugins install ./blind-spots` | The skill |
 
-```sh
-claude --plugin-dir /path/to/blind-spots
-```
+Start a new session after installing. Tools not listed here, such as Windsurf, Cline, Goose, Warp, Junie and Augment, get it from the one-command install above.
 
-Built and tested on Claude Code 2.1.303. It needs a version that supports mods.
+### A chat where nothing can be installed
 
-### On a machine you didn't set up
+Paste [PROMPT.md](PROMPT.md) into the chat. It's the same skill as plain text.
 
-On a borrowed laptop, a cloud dev box or an interview environment, check what you have first.
+### Which model it uses
 
-```sh
-claude --version
-```
+None of its own. The check runs on whatever model your tool is already using, so there's nothing to configure and no extra key. In Claude Code the pane's first line names the model.
 
-- **It prints a version.** Run the two install commands above, then start a new session with `claude`. The pane opens by itself. Blind spots uses whichever model that session runs on, with nothing to configure, and the pane's first line says which model it is reading with. If `plugin install` isn't available on that version, clone the repo and run `claude --plugin-dir ./blind-spots`.
-- **`claude` isn't found, or the assistant is built into a web page.** The mod can't run there. Paste [PROMPT.md](PROMPT.md) into that assistant's chat instead. It asks for the same three lists, in plain text.
+## Use in any tool
 
-Mods need Claude Code itself. They don't run in other AI tools.
+| Say | What happens |
+| --- | --- |
+| `blind spots` or `/blind-spots` | A check now |
+| `blind spots on` | A short check at the end of every reply that changes code, config, data or a plan |
+| `blind spots off` | Stop checking after every reply |
+| a number, like `2` | Talk about that item |
+| `fine` | Settle the items shown, so they're never raised again |
 
-## Use
+In Codex the command is `$blind-spots`. Tools also load the skill by themselves when you ask "what did you assume?" or "what am I missing?".
+
+## Use in Claude Code
+
+The pane opens by itself at the start of every session. To try it for one session without installing, run `claude --plugin-dir /path/to/blind-spots`. It needs a Claude Code version with mods; it was built and tested on 2.1.303 and 2.1.327.
+
 
 | Key | What it does |
 | --- | --- |
@@ -92,16 +113,21 @@ Pressing an item puts its one-sentence question, which the fork wrote, such as "
 
 ## Cost
 
-Every scan is one extra model call over your conversation. It reuses the conversation's prompt cache and asks for a quick answer with no deliberation, so most of what it reads is billed at the cache rate. Marking items fine is free. To scan only when you choose, press `a` to turn the automatic scan off and press `r` when you want one.
+In other tools the check is part of the assistant's own reply, so it costs only the few hundred extra words it writes. "Blind spots on" adds that to each reply that changes something.
+
+In Claude Code every scan is one extra model call over your conversation. It reuses the conversation's prompt cache and asks for a quick answer with no deliberation, so most of what it reads is billed at the cache rate. Marking items fine is free. To scan only when you choose, press `a` to turn the automatic scan off and press `r` when you want one.
 
 ## Development
 
 ```sh
+node scripts/build.mjs --check
 claude plugin test .
 claude plugin validate .
 ```
 
-Everything lives in `hooks/register.tsx`. The pane's state is typed in `types/index.d.ts`, and the tests are in `tests/`. Claude Code generates the typings in `.claude-plugin/types/` for editor type checking, and git ignores them.
+The review itself lives in `skills/blind-spots/SKILL.md`. Every tool's manifest, `PROMPT.md` and the Gemini command are generated from it and from the version in `scripts/build.mjs`: edit those two, then run `node scripts/build.mjs`. Never edit a generated file by hand. `--check` fails if any of them is out of date.
+
+The Claude Code pane lives in `hooks/register.tsx`. The pane's state is typed in `types/index.d.ts`, and the tests are in `tests/`. Claude Code generates the typings in `.claude-plugin/types/` for editor type checking, and git ignores them.
 
 ## License
 

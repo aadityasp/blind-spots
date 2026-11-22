@@ -21,3 +21,7 @@ The mod doesn't ask for, collect or store personal data such as names, emails or
 ## Contact
 
 Questions about this policy can go to the issue tracker at https://github.com/aadityasp/blind-spots/issues.
+
+## In other AI tools
+
+Outside Claude Code, Blind spots is only a set of instructions (a skill) that your assistant follows inside its own reply. It has no code that runs, makes no network calls and stores nothing. What your assistant reads and where it sends it is up to that tool and its model provider.
