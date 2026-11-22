@@ -324,8 +324,12 @@ export const register: Register = on => {
         </Box>
       )
 
-    // One item: a fixed-width marker column (a risk meter or a glyph), then
-    // the text. On the terminal the text is the control itself, "2: text".
+    // One item, drawn per surface:
+    // - Terminal (a monospace grid): a fixed-width marker column, then the
+    //   text as the control itself ("2: text"), wrapping under its start.
+    // - Desktop (a proportional font, where no column of glyphs lines up):
+    //   one wrapping paragraph that opens with the marker, and a small Ask
+    //   pinned to the row's right edge so every Ask sits in one column.
     const row = (opts: {
       rowKey: string
       pressKey: string
@@ -337,30 +341,40 @@ export const register: Register = on => {
       const keyProps = nextHotkey()
       const isAsked = done.includes(opts.text)
       const press = () => ask(opts.text, opts.sends)
+      const markerText = (
+        <Text color={opts.markerColor} dimColor={opts.markerColor === undefined}>
+          {isTerminal ? `${opts.marker} ` : `${opts.marker.trim()}  `}
+        </Text>
+      )
+
+      if (!isTerminal) {
+        return (
+          <Box key={opts.rowKey} flexDirection="column" marginTop={1}>
+            <Box justifyContent="space-between" columnGap={2}>
+              <Box flexShrink={1}>
+                <Text dimColor={isAsked}>
+                  {markerText}
+                  {opts.text}
+                  {marks(opts.text)}
+                </Text>
+              </Box>
+              <Box flexShrink={0}>
+                <Button key={opts.pressKey} plain {...keyProps} dimColor label="Ask" onPress={press} />
+              </Box>
+            </Box>
+            {preview(opts.sends, 0)}
+          </Box>
+        )
+      }
 
       return (
         <Box key={opts.rowKey} flexDirection="column">
           <Box>
-            <Box flexShrink={0}>
-              <Text color={opts.markerColor} dimColor={opts.markerColor === undefined}>
-                {`${opts.marker} `}
-              </Text>
+            <Box flexShrink={0}>{markerText}</Box>
+            <Box flexShrink={1}>
+              <Button key={opts.pressKey} plain {...keyProps} dimColor={isAsked} label={opts.text} onPress={press} />
             </Box>
-            {isTerminal ? (
-              <Box flexShrink={1}>
-                <Button key={opts.pressKey} plain {...keyProps} dimColor={isAsked} label={opts.text} onPress={press} />
-              </Box>
-            ) : (
-              <Box flexShrink={1}>
-                <Text dimColor={isAsked}>{opts.text}</Text>
-              </Box>
-            )}
             {marks(opts.text)}
-            {!isTerminal && (
-              <Box flexShrink={0} paddingLeft={1}>
-                <Button key={opts.pressKey} plain {...keyProps} dimColor label="Ask" onPress={press} />
-              </Box>
-            )}
           </Box>
           {preview(opts.sends, opts.marker.length + 1)}
         </Box>
