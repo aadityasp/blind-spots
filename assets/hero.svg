@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="560" viewBox="0 0 880 560" role="img" aria-labelledby="t d">
+  <title id="t">Blind spots example</title>
+  <desc id="d">A user asks "blind spots" and the assistant lists one decision to check first, two decisions it made without asking rated by dots, and two questions the user has not raised yet.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b1d2a"/>
+      <stop offset="1" stop-color="#14151f"/>
+    </linearGradient>
+    <style>
+      text { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 15px; fill: #d6d8e3; }
+      .dim { fill: #7d8199; }
+      .you { fill: #9fb4ff; }
+      .h { fill: #ffffff; font-weight: 700; }
+      .red { fill: #ff6b6b; }
+      .amber { fill: #ffb454; }
+      .off { fill: #3c3f52; }
+      .num { fill: #7d8199; }
+      .q { fill: #8be9c9; }
+      .warn { fill: #ffd9d9; }
+    </style>
+  </defs>
+
+  <rect x="0.5" y="0.5" width="879" height="559" rx="14" fill="url(#bg)" stroke="#2c2f42"/>
+  <circle cx="26" cy="24" r="6" fill="#ff5f57"/>
+  <circle cx="46" cy="24" r="6" fill="#febc2e"/>
+  <circle cx="66" cy="24" r="6" fill="#28c840"/>
+  <text x="440" y="29" text-anchor="middle" class="dim" style="font-size:13px">any AI tool · any model</text>
+  <line x1="0" y1="46" x2="880" y2="46" stroke="#2c2f42"/>
+
+  <text x="36" y="86"><tspan class="you">›</tspan> blind spots</text>
+
+  <text x="36" y="132" class="h">Blind spots</text>
+
+  <rect x="28" y="152" width="824" height="84" rx="10" fill="#2a1d24" stroke="#5c2f3a"/>
+  <text x="48" y="182" class="h">Check this first <tspan class="red">●●●●●</tspan></text>
+  <text x="48" y="208"><tspan class="num">1.</tspan> Old invoices are deleted, not archived.</text>
+  <text x="76" y="226" class="warn" style="font-size:14px">If this is wrong: customer history is gone for good.</text>
+
+  <text x="36" y="282" class="h">You decided for me</text>
+  <text x="36" y="312"><tspan class="num">2.</tspan> <tspan class="amber">●●●</tspan><tspan class="off">○○</tspan>  Amounts are stored in cents.</text>
+  <text x="36" y="340"><tspan class="num">3.</tspan> <tspan class="amber">●●</tspan><tspan class="off">○○○</tspan>  Dates are shown in the server's time zone.</text>
+
+  <text x="36" y="392" class="h">Questions you haven't raised yet</text>
+  <text x="36" y="422"><tspan class="num">4.</tspan> <tspan class="q">Who can see other users' invoices?</tspan></text>
+  <text x="36" y="450"><tspan class="num">5.</tspan> <tspan class="q">What should happen when an upload fails halfway?</tspan></text>
+
+  <line x1="36" y1="484" x2="844" y2="484" stroke="#2c2f42"/>
+  <text x="36" y="516" class="dim">Reply with a number to talk about that item, or "fine" to settle them.</text>
+</svg>

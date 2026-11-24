@@ -1,18 +1,43 @@
-# Blind spots
+<h1 align="center">Blind spots</h1>
 
-**See what your AI assistant decided without asking you, rated by risk.**
+<p align="center">
+  <b>See what your AI assistant decided without asking you, rated by risk.</b>
+</p>
 
-![Blind spots running beside a Claude Code session](assets/demo.gif)
+<p align="center">
+  <a href="https://github.com/aadityasp/blind-spots/tags"><img alt="Version" src="https://img.shields.io/github/v/tag/aadityasp/blind-spots?label=version&color=6c7bff"></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-2ea44f"></a>
+  <a href="#install"><img alt="Works in about 20 AI tools" src="https://img.shields.io/badge/works%20in-about%2020%20AI%20tools-ff6b6b"></a>
+  <a href="#which-model-it-uses"><img alt="Any model" src="https://img.shields.io/badge/model-any-ffb454"></a>
+</p>
+
+<p align="center">
+  <img src="assets/hero.svg" width="820" alt="A user says blind spots and gets one decision to check first, the decisions the AI made on its own rated by dots, and the questions they haven't raised yet">
+</p>
+
+<p align="center">
+  <code>npx skills add aadityasp/blind-spots -g -a '*' -y</code>
+</p>
+
+<p align="center">
+  Claude Code · Codex · Cursor · Copilot · Gemini CLI · Antigravity · Windsurf · Cline · Amp · Goose · Kiro · Zed · and more
+</p>
+
+---
 
 When you ask an AI to build something, it quietly fills in the blanks. It decides who can see what, what gets deleted and what happens when something fails. Usually you only find out later.
 
-Blind spots shows you:
+Blind spots shows you three things:
 
-- **Check this first.** The one decision that would hurt most if it's wrong, with what breaks, like "Old invoices are deleted, not archived. If this is wrong: customer history is gone for good."
-- **Decided for you.** The other decisions the AI made on its own. Dots show what a wrong guess would cost, from ●○○○○ (a small fix) to ●●●●● (serious harm).
-- **Questions you haven't raised yet.** The few questions that would change what gets built.
+| Part | What it shows |
+| --- | --- |
+| 🔴 **Check this first** | The one decision that would hurt most if it's wrong, and what breaks. |
+| 🟠 **Decided for you** | The other choices the AI made on its own. Dots show what a wrong guess would cost, from ●○○○○ (cosmetic) to ●●●●● (lost data, money or trust). |
+| 🟢 **Questions you haven't raised yet** | The few questions that would change what gets built. |
 
-It works with any model in about 20 AI tools. In Claude Code it's a live side pane that updates after every reply. Everywhere else it's a skill: say "blind spots" for a check, or "blind spots on" to get one after every reply.
+Reply with a number to talk about an item, or "fine" to settle them so they never come back.
+
+It works with any model, in about 20 AI tools. In Claude Code it's a live side pane that updates after every reply. Everywhere else it's a skill: say **"blind spots"** for a check, or **"blind spots on"** to get one after every reply.
 
 ## Install
 
