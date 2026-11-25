@@ -24,6 +24,10 @@
   Claude Code · Codex · Cursor · Copilot · Gemini CLI · Antigravity · Windsurf · Cline · Amp · Goose · Kiro · Zed · and more
 </p>
 
+<p align="center">
+  <img src="assets/blind-spots-demo.gif" width="820" alt="Blind spots in action: a live side pane in Claude Code, the blind spots check in a VS Code chat, and the same check in the Claude app, each listing the riskiest decision first">
+</p>
+
 ---
 
 When you ask an AI to build something, it quietly fills in the blanks. It decides who can see what, what gets deleted and what happens when something fails. Usually you only find out later.
