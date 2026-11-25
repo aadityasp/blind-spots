@@ -9,6 +9,7 @@
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-2ea44f"></a>
   <a href="#install"><img alt="Works in about 20 AI tools" src="https://img.shields.io/badge/works%20in-about%2020%20AI%20tools-ff6b6b"></a>
   <a href="#which-model-it-uses"><img alt="Any model" src="https://img.shields.io/badge/model-any-ffb454"></a>
+  <a href="https://www.claudemod.com/mods/blind-spots-tracker"><img alt="Listed on ClaudeMod" src="https://img.shields.io/badge/Listed%20on-ClaudeMod-10b981?style=flat-square"></a>
 </p>
 
 <p align="center">
